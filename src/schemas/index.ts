@@ -32,6 +32,7 @@ export const UpsertPantryItemSchema = z.object({
     isInStock: z.boolean().optional(),
     name: z.string().min(1),
     purchasedAt: z.coerce.date().nullable().optional(),
+    quantity: z.string().nullable().optional(),
 });
 
 export const UpsertCategorySchema = z.object({
