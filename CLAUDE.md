@@ -70,5 +70,3 @@ Docker Compose, one stack per environment: `soupi-dev` and `soupi-prod`, each wi
   the logs for the migration lines, and confirm an unauthenticated request to a
   data route returns 401 through the public hostname.
 - `.env.*` files hold secrets. Never print or commit them.
-
-See `DEPLOY.md` for the original provisioning runbook.
