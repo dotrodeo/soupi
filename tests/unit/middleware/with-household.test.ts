@@ -1,3 +1,5 @@
+import type { Request, Response } from 'express';
+
 import { vi } from 'vitest';
 
 import { prismaMock } from '../../mocks/prisma';
@@ -16,8 +18,9 @@ const mockHousehold = { id: 1, name: 'My Household' } as never;
 function mockReqRes(params: Record<string, string> = {}) {
     const json = vi.fn();
     const status = vi.fn().mockReturnValue({ json });
-    const req = { household: undefined, params, userId: undefined } as never;
-    const res = { json, status } as never;
+    const req = { household: undefined, params, userId: undefined } as unknown as Request;
+    const resMock = { json, status };
+    const res = resMock as Response & typeof resMock;
     const next = vi.fn();
     return { next, req, res };
 }

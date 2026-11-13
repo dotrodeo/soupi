@@ -12,6 +12,7 @@
         "deploy": "bash scripts/deploy.sh",
         "migrate": "prisma migrate deploy",
         "test": "vitest run",
+        "typecheck": "tsc -p tsconfig.test.json --noEmit",
         "test:watch": "vitest",
         "test:coverage": "vitest run --coverage",
         "format": "prettier --write .",

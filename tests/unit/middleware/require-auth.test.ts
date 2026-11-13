@@ -1,3 +1,5 @@
+import type { Request, Response } from 'express';
+
 import { vi } from 'vitest';
 
 import { prismaMock } from '../../mocks/prisma';
@@ -12,11 +14,12 @@ import requireAuth from '../../../src/middleware/require-auth';
 const getAuthMock = vi.mocked(getAuth);
 
 function mockReqRes() {
-    const req = {} as never;
-    const res = {
+    const req = {} as Request;
+    const resMock = {
         json: vi.fn().mockReturnThis(),
         status: vi.fn().mockReturnThis(),
-    } as never;
+    };
+    const res = resMock as Response & typeof resMock;
     const next = vi.fn();
     return { next, req, res };
 }
