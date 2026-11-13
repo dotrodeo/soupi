@@ -36,7 +36,7 @@ describe('getAllRecipeTags()', () => {
         const result = await getAllRecipeTags(1);
 
         expect(prismaMock.recipeTag.findMany).toHaveBeenCalledWith(
-            expect.objectContaining({ orderBy: { name: 'asc' } }),
+            expect.objectContaining({ orderBy: { name: 'asc' }, where: { householdId: 1 } }),
         );
         expect(result).toEqual([mockTag]);
     });
@@ -71,24 +71,73 @@ describe('upsertRecipe()', () => {
         );
     });
 
-    it('connects or creates tags on upsert', async () => {
+    it('finds or creates tags in the household and connects them on create', async () => {
         prismaMock.recipe.create.mockResolvedValue(mockRecipe);
-        prismaMock.recipe.findUniqueOrThrow.mockResolvedValue(mockRecipe);
-        prismaMock.$transaction.mockResolvedValue([]);
+        prismaMock.$transaction.mockResolvedValueOnce([{ ...mockTag, id: 7 }]);
 
-        await upsertRecipe(1, { name: 'Tagged Recipe', tags: [{ name: 'vegan' }] });
+        await upsertRecipe(1, {
+            name: 'Tagged Recipe',
+            tags: [
+                { id: 0, name: 'vegan' },
+                { id: 0, name: 'vegan' },
+            ],
+        });
 
-        expect(prismaMock.recipe.create).toHaveBeenCalledWith(
-            expect.objectContaining({
-                data: expect.objectContaining({
-                    tags: expect.objectContaining({
-                        connectOrCreate: expect.arrayContaining([
-                            expect.objectContaining({ create: { householdId: 1, name: 'vegan' } }),
-                        ]),
-                    }),
-                }),
-            }),
-        );
+        expect(prismaMock.recipeTag.upsert).toHaveBeenCalledTimes(1);
+        expect(prismaMock.recipeTag.upsert).toHaveBeenCalledWith({
+            create: { householdId: 1, name: 'vegan' },
+            update: {},
+            where: { householdId_name: { householdId: 1, name: 'vegan' } },
+        });
+        expect(prismaMock.recipe.create).toHaveBeenCalledWith({
+            data: { householdId: 1, name: 'Tagged Recipe', tags: { connect: [{ id: 7 }] } },
+        });
+    });
+
+    it('replaces the tag set on update', async () => {
+        prismaMock.recipe.update.mockResolvedValue(mockRecipe);
+        prismaMock.$transaction.mockResolvedValueOnce([
+            { ...mockTag, id: 7 },
+            { ...mockTag, id: 8 },
+        ]);
+
+        await upsertRecipe(1, {
+            id: 1,
+            name: 'Soup',
+            tags: [
+                { id: 0, name: 'dinner' },
+                { id: 0, name: 'quick' },
+            ],
+        });
+
+        expect(prismaMock.recipe.update).toHaveBeenCalledWith({
+            data: { name: 'Soup', tags: { set: [{ id: 7 }, { id: 8 }] } },
+            where: { householdId: 1, id: 1 },
+        });
+    });
+
+    it('clears tags on update when given an empty list', async () => {
+        prismaMock.recipe.update.mockResolvedValue(mockRecipe);
+        prismaMock.$transaction.mockResolvedValueOnce([]);
+
+        await upsertRecipe(1, { id: 1, name: 'Soup', tags: [] });
+
+        expect(prismaMock.recipe.update).toHaveBeenCalledWith({
+            data: { name: 'Soup', tags: { set: [] } },
+            where: { householdId: 1, id: 1 },
+        });
+    });
+
+    it('leaves tags unchanged on update when tags are omitted', async () => {
+        prismaMock.recipe.update.mockResolvedValue(mockRecipe);
+
+        await upsertRecipe(1, { id: 1, name: 'Soup' });
+
+        expect(prismaMock.recipeTag.upsert).not.toHaveBeenCalled();
+        expect(prismaMock.recipe.update).toHaveBeenCalledWith({
+            data: { name: 'Soup' },
+            where: { householdId: 1, id: 1 },
+        });
     });
 });
 

@@ -135,7 +135,7 @@ export async function getAllRecipes(
 export async function getAllRecipeTags(householdId: number) {
     return prisma.recipeTag.findMany({
         orderBy: { name: 'asc' },
-        where: { recipes: { every: { householdId } } },
+        where: { householdId },
     });
 }
 
@@ -158,7 +158,12 @@ export async function upsertRecipe(
         SSEMessageType.RECIPE_UPDATE,
         'upsertRecipe',
         async () => {
-            const { id, ingredients, tags = [], ...data } = patch;
+            const { id, ingredients, tags, ...data } = patch;
+            // Resolve tags to this household's tag ids first, then attach them with
+            // `connect`/`set`. A nested write that mixes `set: []` with
+            // `connectOrCreate` doesn't work: Prisma applies the `set` last, which
+            // left every edited recipe with no tags.
+            const tagIds = tags ? await upsertTags(householdId, tags) : undefined;
             let updatedRecipe;
 
             if (!id) {
@@ -166,25 +171,15 @@ export async function upsertRecipe(
                     data: {
                         ...(data as Prisma.RecipeUncheckedCreateInput),
                         householdId,
-                        tags: {
-                            connectOrCreate: tags.map((tag) => ({
-                                create: { householdId, name: tag.name },
-                                where: { householdId, name: tag.name },
-                            })),
-                        },
+                        ...(tagIds && { tags: { connect: tagIds } }),
                     },
                 });
             } else {
                 updatedRecipe = await prisma.recipe.update({
                     data: {
                         ...(data as Prisma.RecipeUpdateInput),
-                        tags: {
-                            connectOrCreate: tags.map((tag) => ({
-                                create: { householdId, name: tag.name },
-                                where: { householdId, name: tag.name },
-                            })),
-                            set: [],
-                        },
+                        // Omitted `tags` leaves them unchanged; an empty list clears them.
+                        ...(tagIds && { tags: { set: tagIds } }),
                     },
                     where: { householdId, id },
                 });
@@ -194,6 +189,22 @@ export async function upsertRecipe(
         },
     );
 }
+
+/** Finds or creates each named tag in the household and returns their ids. */
+const upsertTags = async (householdId: number, tags: { name: string }[]) => {
+    const names = [...new Set(tags.map((tag) => tag.name))];
+    const rows = await prisma.$transaction(
+        names.map((name) =>
+            prisma.recipeTag.upsert({
+                create: { householdId, name },
+                update: {},
+                where: { householdId_name: { householdId, name } },
+            }),
+        ),
+    );
+
+    return rows.map(({ id }) => ({ id }));
+};
 
 const processIngredients = async (recipe: Recipe, ingredients?: string[]) => {
     if (ingredients && ingredients.length > 0) {
