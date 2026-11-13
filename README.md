@@ -12,7 +12,7 @@ meal planning, pantry inventory, and shopping lists) with real-time sync.
 - **Zod** for request validation, **Pino** for logging
 - **Puppeteer** (headless Chromium) for recipe scraping from URLs
 - **Python NLP parser** for structured ingredient parsing (`python/`)
-- **OpenAI** for recipe suggestions and expiry estimates (`/ai` routes)
+- **OpenAI** to structure recipes scraped from URLs (recipe import)
 - Real-time updates via **Server-Sent Events** (`/events/:householdId`)
 
 ## Getting started
@@ -66,11 +66,11 @@ src/
   server.ts       Boot + listen
   env.ts          Zod-validated environment
   routes/         Thin HTTP layer (user, household, recipe, pantry, category,
-                  shopping-list, plan, events, ai, health, docs, meta)
+                  shopping-list, plan, events, health, docs, meta)
   services/       Business logic + Prisma access
   middleware/     require-auth, with-household, centralized error handler (handle)
   schemas/        Zod request schemas
-utils/            logger (pino), sse (in-memory per-household broadcast), ai, constants
+utils/            logger (pino), sse (in-memory per-household broadcast), constants
 prisma/           Modular schema (prisma/schema/) + seed
 python/           NLP ingredient parser (parser.py) + scraper helpers
 tests/            Vitest unit tests

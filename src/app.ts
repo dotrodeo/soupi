@@ -6,7 +6,6 @@ import path from 'path';
 import pinoHttp from 'pino-http';
 
 import logger from '../utils/logger';
-import aiRoutes from './routes/ai';
 import categoryRoutes from './routes/category';
 import docsRoutes from './routes/docs';
 import eventRoutes from './routes/events';
@@ -28,15 +27,6 @@ app.set('trust proxy', 1);
 // Health check before auth/parsing middleware: it reflects the app's own health
 // (DB connectivity) and must work even if Clerk is down or misconfigured.
 app.use('/health', healthRoutes);
-
-// Strict rate limit for AI endpoints (OpenAI cost protection)
-const aiRateLimit = rateLimit({
-    legacyHeaders: false,
-    limit: 10,
-    message: { error: 'Too many AI requests, please try again later.' },
-    standardHeaders: 'draft-8',
-    windowMs: 15 * 60 * 1000,
-});
 
 // General rate limit for all other routes
 const generalRateLimit = rateLimit({
@@ -80,6 +70,5 @@ app.use('/', generalRateLimit, shoppingListRoutes);
 app.use('/', generalRateLimit, categoryRoutes);
 app.use('/', generalRateLimit, planRoutes);
 app.use('/events', streamRateLimit, eventRoutes);
-app.use('/ai', aiRateLimit, aiRoutes);
 
 export default app;

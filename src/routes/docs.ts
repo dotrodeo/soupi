@@ -509,40 +509,6 @@ registry.registerPath({
     tags: ['Events'],
 });
 
-// ─── AI ───────────────────────────────────────────────────────────────────────
-
-registry.registerPath({
-    method: 'get',
-    path: '/ai/suggestions/{pantryId}',
-    request: {
-        params: z.object({ pantryId: PantryIdParam }),
-        query: z.object({
-            keywords: z.string().optional().openapi({ example: 'soup, quick meals' }),
-            tags: z.string().optional().openapi({ example: 'vegan, gluten-free' }),
-        }),
-    },
-    responses: {
-        200: { description: 'AI-generated recipe suggestions based on pantry contents' },
-        401: { description: 'Unauthorized' },
-    },
-    security: secured,
-    summary: 'Get AI recipe suggestions from pantry',
-    tags: ['AI'],
-});
-
-registry.registerPath({
-    method: 'get',
-    path: '/ai/expiring-items/{pantryId}',
-    request: { params: z.object({ pantryId: PantryIdParam }) },
-    responses: {
-        200: { description: 'Pantry items that are expiring soon (AI-estimated)' },
-        401: { description: 'Unauthorized' },
-    },
-    security: secured,
-    summary: 'Get items expiring soon with AI-estimated dates',
-    tags: ['AI'],
-});
-
 // ─── Generate spec & serve ────────────────────────────────────────────────────
 
 const generator = new OpenApiGeneratorV3(registry.definitions);
