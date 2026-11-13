@@ -157,3 +157,7 @@ tests/unit/       Vitest tests with a mocked Prisma client
 Data routes live under `/household/:householdId/…` and require a Clerk session token
 belonging to a member of that household. Request bodies are validated with Zod, which
 drops fields the schema doesn't list. Records are soft-deleted (`deletedAt`).
+
+## License
+
+MIT. See [LICENSE](LICENSE).
