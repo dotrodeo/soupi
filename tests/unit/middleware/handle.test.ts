@@ -1,3 +1,5 @@
+import type { Request, Response } from 'express';
+
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
@@ -15,8 +17,9 @@ function mockReqRes(params: Record<string, string> = {}) {
     const send = vi.fn();
     const end = vi.fn();
     const status = vi.fn().mockReturnValue({ end, json, send });
-    const req = { params } as never;
-    const res = { end, headersSent: false, json, send, status } as never;
+    const req = { params } as unknown as Request;
+    const resMock = { end, headersSent: false, json, send, status };
+    const res = resMock as Response & typeof resMock;
     return { req, res };
 }
 

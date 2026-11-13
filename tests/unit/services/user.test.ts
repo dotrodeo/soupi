@@ -1,3 +1,5 @@
+import type { User } from '@prisma/client';
+
 import { vi } from 'vitest';
 
 import { prismaMock } from '../../mocks/prisma';
@@ -14,16 +16,18 @@ const mockClerkUser = {
     id: 'user_123',
 } as never;
 
-const mockDbUser = {
+const mockDbUser: User & { households: { id: number; name: string }[] } = {
     clerkId: 'user_123',
     createdAt: new Date('2024-01-01'),
     defaultHouseholdId: 1,
+    deletedAt: null,
     email: 'alice@example.com',
     households: [{ id: 1, name: 'My Household' }],
     id: 'user_123',
     name: 'Alice Smith',
+    themePreference: 'system',
     updatedAt: new Date('2024-01-01'),
-} as never;
+};
 
 describe('createUser()', () => {
     it('creates user with household and pantry in a transaction', async () => {

@@ -134,14 +134,15 @@ held in memory.
 
 ## Development
 
-| Command                                | What it does           |
-| -------------------------------------- | ---------------------- |
-| `npm run dev`                          | Dev server with reload |
-| `npm run build`                        | Compile to `dist/`     |
-| `npm test`                             | Unit tests (Vitest)    |
-| `npm run lint`, `npm run format`       | ESLint, Prettier       |
-| `npx prisma migrate dev --name <name>` | Create a migration     |
-| `npm run studio`                       | Browse the database    |
+| Command                                | What it does              |
+| -------------------------------------- | ------------------------- |
+| `npm run dev`                          | Dev server with reload    |
+| `npm run build`                        | Compile to `dist/`        |
+| `npm test`                             | Unit tests (Vitest)       |
+| `npm run typecheck`                    | Type-check tests and seed |
+| `npm run lint`, `npm run format`       | ESLint, Prettier          |
+| `npx prisma migrate dev --name <name>` | Create a migration        |
+| `npm run studio`                       | Browse the database       |
 
 ```
 src/routes/       HTTP layer: auth, household access check, request validation

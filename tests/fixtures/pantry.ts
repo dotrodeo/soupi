@@ -24,6 +24,7 @@ export const mockPantryItem: PantryItem = {
     name: 'Flour',
     pantryId: 1,
     purchasedAt: new Date('2024-01-01'),
+    quantity: null,
     updatedAt: new Date('2024-01-01'),
 };
 

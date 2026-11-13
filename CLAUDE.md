@@ -39,6 +39,7 @@ npx prisma generate      # after schema changes, before tsc/tests
 npm run format:check
 npm run lint
 npm run build            # tsc
+npm run typecheck        # tsc over tests, seed and src
 npm test
 ```
 

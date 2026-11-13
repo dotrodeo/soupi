@@ -3,6 +3,7 @@ import type { Ingredient, Recipe, RecipeTag } from '@prisma/client';
 export const mockIngredient: Ingredient = {
     amount: null,
     createdAt: new Date('2024-01-01'),
+    deletedAt: null,
     id: 1,
     item: 'flour',
     json: null,
@@ -16,7 +17,6 @@ export const mockIngredient: Ingredient = {
 
 export const mockTag: RecipeTag = {
     createdAt: new Date('2024-01-01'),
-    deletedAt: null,
     householdId: 1,
     id: 1,
     name: 'vegetarian',

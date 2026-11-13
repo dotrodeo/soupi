@@ -103,20 +103,24 @@ async function main() {
             ],
             name: 'Pancakes',
             prepTime: '20 mins',
-            servings: 4,
+            servings: '4',
             tags: {
                 connectOrCreate: [
                     {
                         create: { householdId: household.id, name: 'breakfast' },
-                        where: { name: 'breakfast' },
+                        where: {
+                            householdId_name: { householdId: household.id, name: 'breakfast' },
+                        },
                     },
                     {
                         create: { householdId: household.id, name: 'easy' },
-                        where: { name: 'easy' },
+                        where: { householdId_name: { householdId: household.id, name: 'easy' } },
                     },
                     {
                         create: { householdId: household.id, name: 'vegetarian' },
-                        where: { name: 'vegetarian' },
+                        where: {
+                            householdId_name: { householdId: household.id, name: 'vegetarian' },
+                        },
                     },
                 ],
             },
@@ -142,31 +146,40 @@ async function main() {
             ],
             name: 'Avocado Toast',
             prepTime: '10 mins',
-            servings: 2,
+            servings: '2',
             tags: {
                 connectOrCreate: [
                     {
                         create: { householdId: household.id, name: 'breakfast' },
-                        where: { name: 'breakfast' },
+                        where: {
+                            householdId_name: { householdId: household.id, name: 'breakfast' },
+                        },
                     },
                     {
                         create: { householdId: household.id, name: '<30mins' },
-                        where: { name: '<30mins' },
+                        where: { householdId_name: { householdId: household.id, name: '<30mins' } },
                     },
                     {
                         create: { householdId: household.id, name: 'healthy' },
-                        where: { name: 'healthy' },
+                        where: { householdId_name: { householdId: household.id, name: 'healthy' } },
                     },
                     {
                         create: { householdId: household.id, name: 'vegetarian' },
-                        where: { name: 'vegetarian' },
+                        where: {
+                            householdId_name: { householdId: household.id, name: 'vegetarian' },
+                        },
                     },
                 ],
             },
         },
     ];
 
-    const pantryItemData: Prisma.PantryItemCreateInput[] = [
+    const pantryItemData: {
+        category: string;
+        isInShoppingList?: boolean;
+        isInStock?: boolean;
+        name: string;
+    }[] = [
         { category: 'Baking', isInStock: true, name: 'all-purpose flour' },
         { category: 'Baking', isInStock: true, name: 'sugar' },
         { category: 'Dairy', isInStock: true, name: 'eggs' },
@@ -180,11 +193,7 @@ async function main() {
         { category: 'Baking', isInShoppingList: true, isInStock: false, name: 'baking powder' },
         { category: 'Baking', isInShoppingList: true, isInStock: false, name: 'baking soda' },
         { category: 'Dairy', isInShoppingList: true, isInStock: false, name: 'butter' },
-    ].map((item) => ({
-        ...item,
-        category: { connect: { name: item.category } },
-        pantry: { connect: { id: pantry.id } },
-    }));
+    ];
 
     // Seed categories
     for (const c of categories) {
@@ -252,18 +261,21 @@ async function main() {
     }
 
     // Seed pantry items
-    for (const u of pantryItemData) {
+    for (const { category, ...item } of pantryItemData) {
         const existingPantryItem = await prisma.pantryItem.findFirst({
-            where: { name: u.name, pantryId: pantry.id },
+            where: { name: item.name, pantryId: pantry.id },
         });
 
         if (existingPantryItem) {
-            console.log(`Pantry item with name ${u.name} already exists`);
+            console.log(`Pantry item with name ${item.name} already exists`);
             continue;
         }
 
+        const itemCategory = await prisma.itemCategory.findFirstOrThrow({
+            where: { name: category, pantryId: pantry.id },
+        });
         const pantryItem = await prisma.pantryItem.create({
-            data: u,
+            data: { ...item, categoryId: itemCategory.id, pantryId: pantry.id },
         });
         console.log(`Created pantry item with id: ${pantryItem.id}`);
     }

@@ -1,6 +1,13 @@
+import type { Response } from 'express';
+
 import { vi } from 'vitest';
 
 import { SSEMessageType } from '../../../utils/constants';
+
+/** A fake Express response that keeps its mock types. */
+function mockRes<T extends object>(res: T) {
+    return res as Response & T;
+}
 
 describe('sse utils', () => {
     let addClient: typeof import('../../../utils/sse').addClient;
@@ -14,7 +21,7 @@ describe('sse utils', () => {
 
     describe('addClient()', () => {
         it('registers a client for a household', () => {
-            const res = { on: vi.fn(), write: vi.fn() } as never;
+            const res = mockRes({ on: vi.fn(), write: vi.fn() });
 
             addClient(1, res);
 
@@ -22,8 +29,8 @@ describe('sse utils', () => {
         });
 
         it('appends to existing clients for the same household', () => {
-            const res1 = { on: vi.fn(), write: vi.fn() } as never;
-            const res2 = { on: vi.fn(), write: vi.fn() } as never;
+            const res1 = mockRes({ on: vi.fn(), write: vi.fn() });
+            const res2 = mockRes({ on: vi.fn(), write: vi.fn() });
 
             addClient(1, res1);
             addClient(1, res2);
@@ -33,12 +40,12 @@ describe('sse utils', () => {
 
         it('removes the client when connection closes', () => {
             let closeHandler: () => void;
-            const res = {
-                on: vi.fn((event, cb) => {
+            const res = mockRes({
+                on: vi.fn((event: string, cb: () => void) => {
                     if (event === 'close') closeHandler = cb;
                 }),
                 write: vi.fn(),
-            } as never;
+            });
 
             addClient(1, res);
             expect(clientsByHousehold.get(1)).toContain(res);
@@ -60,8 +67,8 @@ describe('sse utils', () => {
         });
 
         it('writes SSE message to all connected clients', async () => {
-            const res1 = { on: vi.fn(), write: vi.fn() } as never;
-            const res2 = { on: vi.fn(), write: vi.fn() } as never;
+            const res1 = mockRes({ on: vi.fn(), write: vi.fn() });
+            const res2 = mockRes({ on: vi.fn(), write: vi.fn() });
             addClient(2, res1);
             addClient(2, res2);
 
