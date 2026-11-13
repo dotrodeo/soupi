@@ -72,17 +72,23 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/docs', docsRoutes);
 app.use('/meta', metaRoutes);
+app.use('/events', streamRateLimit, eventRoutes);
 app.use('/user', generalRateLimit, userRoutes);
+
+// Household data routes. Limiters are applied once, ahead of the routers: a limiter
+// mounted with each router would count a request once per router it passes through.
 app.use(
     ['/household/:householdId/recipes/scrape', '/household/:householdId/recipes/from-url'],
     recipeImportRateLimit,
 );
-app.use('/', generalRateLimit, householdRoutes);
-app.use('/', generalRateLimit, recipeRoutes);
-app.use('/', generalRateLimit, pantryRoutes);
-app.use('/', generalRateLimit, shoppingListRoutes);
-app.use('/', generalRateLimit, categoryRoutes);
-app.use('/', generalRateLimit, planRoutes);
-app.use('/events', streamRateLimit, eventRoutes);
+app.use('/household', generalRateLimit);
+app.use(
+    householdRoutes,
+    recipeRoutes,
+    pantryRoutes,
+    shoppingListRoutes,
+    categoryRoutes,
+    planRoutes,
+);
 
 export default app;
