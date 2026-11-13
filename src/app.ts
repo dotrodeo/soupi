@@ -37,6 +37,16 @@ const generalRateLimit = rateLimit({
     windowMs: 15 * 60 * 1000,
 });
 
+// Recipe import loads the page in Chromium and calls OpenAI, so it gets a strict
+// limit of its own (cost protection) on top of the general one.
+const recipeImportRateLimit = rateLimit({
+    legacyHeaders: false,
+    limit: 10,
+    message: { error: 'Too many recipe imports, please try again later.' },
+    standardHeaders: 'draft-8',
+    windowMs: 15 * 60 * 1000,
+});
+
 // SSE streams reconnect over time (proxy timeouts, token refresh, network
 // changes), so each reconnect would spend a general-API slot. Give them their
 // own generous bucket so the live stream can't starve normal requests (or vice
@@ -63,6 +73,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/docs', docsRoutes);
 app.use('/meta', metaRoutes);
 app.use('/user', generalRateLimit, userRoutes);
+app.use(
+    ['/household/:householdId/recipes/scrape', '/household/:householdId/recipes/from-url'],
+    recipeImportRateLimit,
+);
 app.use('/', generalRateLimit, householdRoutes);
 app.use('/', generalRateLimit, recipeRoutes);
 app.use('/', generalRateLimit, pantryRoutes);
