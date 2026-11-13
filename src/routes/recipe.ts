@@ -60,7 +60,7 @@ router.get(
     handle((req) => recipeService.getAllRecipeTags(req.household.id)),
 );
 
-router.get(`${prefix}/scrape`, requireAuth(), async (req, res) => {
+router.get(`${prefix}/scrape`, requireAuth(), withHousehold(), async (req, res) => {
     try {
         const { url } = req.query;
         if (!url || typeof url !== 'string') {
