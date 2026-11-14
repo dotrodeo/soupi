@@ -52,11 +52,15 @@ pass, and the branch must be up to date with `main`. The rules apply to admins t
 so pushing to `main` directly is rejected.
 
 1. Branch off `origin/main` (in a worktree, not the deploy checkout), commit, push,
-   and open a PR.
+   and open a PR. Every prod deploy is a release: if the PR will be deployed, bump
+   `version` in `package.json` (semver) in the same PR, with
+   `npm version <x.y.z> --no-git-tag-version` so the lockfile matches.
 2. When CI passes, merge it with a merge commit and delete the branch. If `main`
    moved in the meantime, run `gh pr update-branch <n> --rebase` and wait for CI
    again.
-3. Deploy: `git pull --ff-only` in the deploy checkout, then follow
+3. Release: tag the merge commit and publish it:
+   `git tag vX.Y.Z <merge-sha> && git push origin vX.Y.Z && gh release create vX.Y.Z --generate-notes`.
+4. Deploy: `git pull --ff-only` in the deploy checkout, then follow
    [Deploy](#deploy): dev first, verify, then prod.
 
 ## Schema changes
@@ -78,9 +82,12 @@ Docker Compose, one stack per environment: `soupi-dev` and `soupi-prod`, each wi
   command. Without it Compose falls back to `dev` and empty Postgres credentials.
 - Rebuild only the API: `docker compose --env-file .env.<env> up -d --build api`.
   Avoid `npm run deploy`, which runs `up -d --build` for the whole stack.
-- Before a prod deploy, tag the current image so it can be rolled back
-  (`docker tag soupi:prod soupi:prod-pre-<change>`), and `pg_dump` the prod DB if
-  the deploy includes a migration.
+- After the prod build, tag the image with the release version:
+  `docker tag soupi:prod soupi:X.Y.Z`. Keep the last three version images and
+  `docker rmi` older ones. Don't version-tag dev images.
+- Roll back by pointing `prod` at the previous version's image:
+  `docker tag soupi:<prev> soupi:prod && docker compose --env-file .env.prod up -d api`.
+- `pg_dump` the prod DB before a deploy that includes a migration.
 - Verify: `curl 127.0.0.1:<API_PORT>/health` → `{"db":"ok","status":"ok"}`, check
   the logs for the migration lines, and confirm an unauthenticated request to a
   data route returns 401 through the public hostname.
