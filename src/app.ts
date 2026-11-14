@@ -67,7 +67,8 @@ const corsOrigins = process.env.CORS_ORIGINS?.split(',')
 app.use(cors(corsOrigins?.length ? { origin: corsOrigins } : {}));
 app.use(express.json());
 app.use(pinoHttp({ logger }));
-app.use(clerkMiddleware({ debug: true }));
+// Clerk's debug output is verbose; turn it on only with LOG_LEVEL=debug.
+app.use(clerkMiddleware({ debug: process.env.LOG_LEVEL === 'debug' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/docs', docsRoutes);
