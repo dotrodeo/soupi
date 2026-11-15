@@ -17,6 +17,9 @@ describe('RecipeTagSchema', () => {
     it('accepts valid tag', () => {
         expect(RecipeTagSchema.safeParse({ id: 1, name: 'vegetarian' }).success).toBe(true);
     });
+    it('accepts a tag with only a name (new tags have no id)', () => {
+        expect(RecipeTagSchema.safeParse({ name: 'vegetarian' }).success).toBe(true);
+    });
     it('rejects missing name', () => {
         expect(RecipeTagSchema.safeParse({ id: 1 }).success).toBe(false);
     });
