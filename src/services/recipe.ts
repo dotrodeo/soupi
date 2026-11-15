@@ -21,7 +21,7 @@ type RecipeUpsert = {
     prepTime?: null | string;
     servings?: null | string;
     source?: null | string;
-    tags?: { id: number; name: string }[];
+    tags?: { id?: number; name: string }[];
 };
 
 type RecipeWithJoins = Prisma.RecipeGetPayload<{

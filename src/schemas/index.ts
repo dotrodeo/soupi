@@ -1,7 +1,9 @@
 import { z } from 'zod';
 
+// Tags are resolved by name within the household (services/recipe.ts), so a tag in a
+// request needs only its name; new tags have no id yet.
 export const RecipeTagSchema = z.object({
-    id: z.number().int().positive(),
+    id: z.number().int().positive().optional(),
     name: z.string().min(1),
 });
 
