@@ -29,7 +29,10 @@ Python ingredient parser (`python/`). `/ai` routes call OpenAI.
 - `tests/unit/`: Vitest with a mocked Prisma (`tests/mocks/prisma.ts`) and mocked
   broadcast (`tests/mocks/broadcast.ts`). There are no DB integration tests.
 
-Conventions: soft deletes via `deletedAt` (filter them out in reads), ESLint with
+Conventions: soft deletes via `deletedAt` (filter them out in reads), done by `DELETE`
+routes — upsert schemas don't accept `deletedAt`, and Zod would silently drop it. Scope
+every lookup by a client-sent id to the household (`pantry: { householdId }` or
+equivalent). ESLint with
 `perfectionist` (sorted keys and imports), Prettier with 4-space indent.
 
 ## Checks

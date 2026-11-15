@@ -11,9 +11,8 @@ vi.mock('../../../utils/sse', () => ({
     ),
 }));
 
-const { getAllPantryItems, getPantries, getPantryItem, upsertPantryItem } = await import(
-    '../../../src/services/pantry'
-);
+const { deletePantryItem, getAllPantryItems, getPantries, getPantryItem, upsertPantryItem } =
+    await import('../../../src/services/pantry');
 
 describe('getPantries()', () => {
     it('returns the first pantry for the household', async () => {
@@ -141,7 +140,22 @@ describe('upsertPantryItem()', () => {
 
         await upsertPantryItem(1, { id: 1, isFavorite: true, name: 'Flour', pantryId: 1 });
 
+        expect(prismaMock.pantryItem.findFirst).toHaveBeenCalledWith({
+            where: { deletedAt: null, id: 1, pantryId: 1 },
+        });
         expect(prismaMock.pantryItem.update).toHaveBeenCalled();
+    });
+
+    it("refuses an id that isn't a live item in this pantry", async () => {
+        // e.g. another household's item id, or one that was deleted
+        prismaMock.pantry.findUniqueOrThrow.mockResolvedValue(mockPantry as any);
+        prismaMock.pantryItem.findFirst.mockResolvedValue(null);
+
+        await expect(
+            upsertPantryItem(1, { id: 777, isFavorite: true, name: 'Flour', pantryId: 1 }),
+        ).rejects.toThrow('Pantry item not found');
+        expect(prismaMock.pantryItem.update).not.toHaveBeenCalled();
+        expect(prismaMock.pantryItem.create).not.toHaveBeenCalled();
     });
 
     it('throws if pantry does not belong to household', async () => {
@@ -167,5 +181,24 @@ describe('getPantryItem()', () => {
         prismaMock.pantryItem.findUniqueOrThrow.mockRejectedValue(new Error('Not found'));
 
         await expect(getPantryItem(1, 1, 999)).rejects.toThrow('Not found');
+    });
+});
+
+describe('deletePantryItem()', () => {
+    it('soft-deletes the item and takes it off the list, scoped to the household', async () => {
+        prismaMock.pantryItem.updateMany.mockResolvedValue({ count: 1 });
+
+        expect(await deletePantryItem(1, 2, 3)).toBe(true);
+
+        expect(prismaMock.pantryItem.updateMany).toHaveBeenCalledWith({
+            data: { deletedAt: expect.any(Date), isInShoppingList: false },
+            where: { deletedAt: null, id: 3, pantry: { householdId: 1 }, pantryId: 2 },
+        });
+    });
+
+    it('returns false when nothing matched', async () => {
+        prismaMock.pantryItem.updateMany.mockResolvedValue({ count: 0 });
+
+        expect(await deletePantryItem(1, 2, 999)).toBe(false);
     });
 });

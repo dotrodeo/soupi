@@ -344,6 +344,20 @@ registry.registerPath({
     tags: ['Pantry'],
 });
 
+registry.registerPath({
+    method: 'delete',
+    path: '/household/{householdId}/pantry/{pantryId}/items/{itemId}',
+    request: { params: itemParams },
+    responses: {
+        204: { description: 'Item deleted and taken off the shopping list' },
+        403: { description: 'Access denied' },
+        404: { description: 'Not found' },
+    },
+    security: secured,
+    summary: 'Delete a pantry item',
+    tags: ['Pantry'],
+});
+
 // ─── Categories ───────────────────────────────────────────────────────────────
 
 registry.registerPath({
@@ -387,6 +401,20 @@ registry.registerPath({
     },
     security: secured,
     summary: 'Get a category',
+    tags: ['Categories'],
+});
+
+registry.registerPath({
+    method: 'delete',
+    path: '/household/{householdId}/pantry/{pantryId}/category/{categoryId}',
+    request: { params: categoryParams },
+    responses: {
+        204: { description: 'Category deleted; its items become uncategorized' },
+        403: { description: 'Access denied' },
+        404: { description: 'Not found' },
+    },
+    security: secured,
+    summary: 'Delete a category',
     tags: ['Categories'],
 });
 
