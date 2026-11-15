@@ -21,6 +21,7 @@ export const mockPantryItem: PantryItem = {
     isFavorite: false,
     isInShoppingList: false,
     isInStock: true,
+    isLow: false,
     name: 'Flour',
     pantryId: 1,
     purchasedAt: new Date('2024-01-01'),

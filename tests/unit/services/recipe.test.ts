@@ -271,6 +271,58 @@ describe('completeRecipe()', () => {
     });
 });
 
+describe('completeRecipe() pantry updates', () => {
+    const setup = () => {
+        prismaMock.$transaction.mockImplementation(async (cb: any) => cb(prismaMock));
+        prismaMock.recipe.findFirstOrThrow.mockResolvedValue(mockRecipe);
+        prismaMock.recipe.update.mockResolvedValue(mockRecipe);
+        prismaMock.pantryItem.findMany.mockResolvedValue([{ id: 10, isFavorite: false } as any]);
+        prismaMock.pantryItem.update.mockResolvedValue({} as any);
+        prismaMock.pantryItem.updateMany.mockResolvedValue({ count: 1 });
+        prismaMock.planDay.findMany.mockResolvedValue([]);
+    };
+
+    it('only touches this household’s pantry items', async () => {
+        setup();
+        await completeRecipe(1, { finishedPantryItems: [10], recipeId: 1 });
+        expect(prismaMock.pantryItem.findMany).toHaveBeenCalledWith(
+            expect.objectContaining({ where: { id: { in: [10] }, pantry: { householdId: 1 } } }),
+        );
+    });
+
+    it('marks low items low and in stock, scoped to the household', async () => {
+        setup();
+        await completeRecipe(1, { lowPantryItems: [11, 12], recipeId: 1 });
+        expect(prismaMock.pantryItem.updateMany).toHaveBeenCalledWith({
+            data: { isInStock: true, isLow: true },
+            where: { id: { in: [11, 12] }, pantry: { householdId: 1 } },
+        });
+    });
+
+    it('used up wins over low for the same item', async () => {
+        setup();
+        await completeRecipe(1, {
+            finishedPantryItems: [10],
+            lowPantryItems: [10, 11],
+            recipeId: 1,
+        });
+        expect(prismaMock.pantryItem.updateMany).toHaveBeenCalledWith(
+            expect.objectContaining({ where: { id: { in: [11] }, pantry: { householdId: 1 } } }),
+        );
+        expect(prismaMock.pantryItem.update).toHaveBeenCalledWith(
+            expect.objectContaining({
+                data: expect.objectContaining({ isInStock: false, isLow: false }),
+            }),
+        );
+    });
+
+    it('skips the low update when there are no low items', async () => {
+        setup();
+        await completeRecipe(1, { finishedPantryItems: [10], recipeId: 1 });
+        expect(prismaMock.pantryItem.updateMany).not.toHaveBeenCalled();
+    });
+});
+
 describe('createRecipeFromUrl()', () => {
     it('throws when scraper returns null', async () => {
         const { scrapeRecipe } = await import('../../../src/services/scraper');

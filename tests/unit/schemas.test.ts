@@ -68,6 +68,7 @@ describe('CompleteRecipeSchema', () => {
         expect(
             CompleteRecipeSchema.safeParse({
                 finishedPantryItems: [1, 2, 3],
+                lowPantryItems: [4],
                 rating: 4,
                 recipeId: 1,
             }).success,

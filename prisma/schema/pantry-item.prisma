@@ -3,6 +3,8 @@ model PantryItem {
   name             String
   quantity         String?
   isInStock        Boolean       @default(false)
+  /// In stock but running low. Only meaningful while isInStock is true.
+  isLow            Boolean       @default(false)
   isFavorite       Boolean       @default(false)
   isInShoppingList Boolean       @default(false)
   purchasedAt      DateTime?
