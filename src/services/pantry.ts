@@ -9,6 +9,27 @@ type PantryItemInput = Partial<Omit<PantryItem, 'createdAt' | 'deletedAt' | 'upd
     pantryId: number;
 };
 
+/** Soft-deletes a pantry item and takes it off the shopping list. Resolves to
+ *  false when the item isn't a live item in this household's pantry. */
+export async function deletePantryItem(
+    householdId: number,
+    pantryId: number,
+    itemId: number,
+): Promise<boolean> {
+    return broadcast<boolean>(
+        householdId,
+        SSEMessageType.PANTRY_UPDATE,
+        'deletePantryItem',
+        async () => {
+            const { count } = await prisma.pantryItem.updateMany({
+                data: { deletedAt: new Date(), isInShoppingList: false },
+                where: { deletedAt: null, id: itemId, pantry: { householdId }, pantryId },
+            });
+            return count > 0;
+        },
+    );
+}
+
 export async function getAllPantryItems(
     householdId: number,
     pantryId: number,
@@ -87,8 +108,17 @@ export async function upsertPantryItem(
             // to the pantry — otherwise a same-named ghost (or any other item) is
             // matched and the edit lands on the wrong row (lost update).
             const existing = await prisma.pantryItem.findFirst({
-                where: id ? { id } : { deletedAt: null, name: item.name, pantryId: item.pantryId },
+                where: id
+                    ? { deletedAt: null, id, pantryId: item.pantryId }
+                    : { deletedAt: null, name: item.name, pantryId: item.pantryId },
             });
+
+            // An id the client sent must be a live item in this pantry (which the
+            // check above ties to the household). Otherwise refuse, rather than
+            // editing another household's item or resurrecting a deleted one.
+            if (id && !existing) {
+                throw new Error('Pantry item not found');
+            }
 
             if (existing) {
                 return prisma.pantryItem.update({

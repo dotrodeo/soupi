@@ -13,7 +13,7 @@ router.get(
     prefix,
     requireAuth(),
     withHousehold(),
-    handle((req) => categoryService.getCategories(Number(req.params.pantryId))),
+    handle((req) => categoryService.getCategories(req.household.id, Number(req.params.pantryId))),
 );
 
 router.post(
@@ -32,7 +32,11 @@ router.get(
     requireAuth(),
     withHousehold(),
     handle((req) =>
-        categoryService.getCategory(Number(req.params.pantryId), Number(req.params.categoryId)),
+        categoryService.getCategory(
+            req.household.id,
+            Number(req.params.pantryId),
+            Number(req.params.categoryId),
+        ),
     ),
 );
 
@@ -44,6 +48,20 @@ router.post(
         const body = parseBody(res, UpdateSortOrderSchema, req.body);
         if (!body) return;
         return categoryService.updateSortOrder(req.household.id, Number(req.params.pantryId), body);
+    }),
+);
+
+router.delete(
+    `${prefix}/:categoryId`,
+    requireAuth(),
+    withHousehold(),
+    handle(async (req, res) => {
+        const deleted = await categoryService.deleteCategory(
+            req.household.id,
+            Number(req.params.pantryId),
+            Number(req.params.categoryId),
+        );
+        if (!deleted) res.status(404).json({ error: 'Category not found' });
     }),
 );
 

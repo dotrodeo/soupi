@@ -50,4 +50,18 @@ router.get(
     ),
 );
 
+router.delete(
+    `${prefix}/:pantryId/items/:itemId`,
+    requireAuth(),
+    withHousehold(),
+    handle(async (req, res) => {
+        const deleted = await pantryService.deletePantryItem(
+            req.household.id,
+            Number(req.params.pantryId),
+            Number(req.params.itemId),
+        );
+        if (!deleted) res.status(404).json({ error: 'Pantry item not found' });
+    }),
+);
+
 export default router;
