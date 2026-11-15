@@ -71,6 +71,17 @@ export async function upsertPantryItem(
                 data.expiresAt = null;
             }
 
+            // "Low" means in stock but running low. Marking an item out, or back in
+            // stock (restocked) without saying it's low, clears it; marking it low
+            // implies it's in stock.
+            if (data.isInStock === false) {
+                data.isLow = false;
+            } else if (data.isLow === true) {
+                data.isInStock = true;
+            } else if (data.isInStock === true && data.isLow === undefined) {
+                data.isLow = false;
+            }
+
             // Match the row to update: by id when the client knows it, otherwise
             // by name within this pantry. Must exclude soft-deleted rows and scope
             // to the pantry — otherwise a same-named ghost (or any other item) is

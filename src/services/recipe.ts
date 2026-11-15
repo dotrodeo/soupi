@@ -8,6 +8,7 @@ import { scrapeRecipe } from './scraper';
 
 type RecipeCompletion = {
     finishedPantryItems?: number[];
+    lowPantryItems?: number[];
     rating?: number;
     recipeId: number;
 };
@@ -49,9 +50,12 @@ export async function completeRecipe(
             where: { id: completion.recipeId },
         });
 
+        // Pantry items are only ever this household's: ids from another household
+        // are ignored.
+        const finished = completion.finishedPantryItems ?? [];
         const items = await tx.pantryItem.findMany({
             select: { id: true, isFavorite: true },
-            where: { id: { in: completion.finishedPantryItems } },
+            where: { id: { in: finished }, pantry: { householdId } },
         });
 
         for (const item of items) {
@@ -59,8 +63,18 @@ export async function completeRecipe(
                 data: {
                     isInShoppingList: item.isFavorite ? true : false,
                     isInStock: false,
+                    isLow: false,
                 },
                 where: { id: item.id },
+            });
+        }
+
+        // Running low: still in stock, marked low. Used up wins if an item is in both.
+        const low = (completion.lowPantryItems ?? []).filter((id) => !finished.includes(id));
+        if (low.length > 0) {
+            await tx.pantryItem.updateMany({
+                data: { isInStock: true, isLow: true },
+                where: { id: { in: low }, pantry: { householdId } },
             });
         }
 

@@ -21,6 +21,8 @@ export const UpsertRecipeSchema = z.object({
 
 export const CompleteRecipeSchema = z.object({
     finishedPantryItems: z.array(z.number().int().positive()).optional(),
+    /** Pantry items that are now running low (kept in stock, marked low). */
+    lowPantryItems: z.array(z.number().int().positive()).optional(),
     rating: z.number().int().min(0).max(5).optional(),
     recipeId: z.number().int().positive(),
 });
@@ -32,6 +34,7 @@ export const UpsertPantryItemSchema = z.object({
     isFavorite: z.boolean().optional(),
     isInShoppingList: z.boolean().optional(),
     isInStock: z.boolean().optional(),
+    isLow: z.boolean().optional(),
     name: z.string().min(1),
     purchasedAt: z.coerce.date().nullable().optional(),
     quantity: z.string().nullable().optional(),

@@ -96,6 +96,44 @@ describe('upsertPantryItem()', () => {
         );
     });
 
+    describe('low stock', () => {
+        const upsertWith = async (patch: object) => {
+            prismaMock.pantry.findUniqueOrThrow.mockResolvedValue(mockPantry as any);
+            prismaMock.pantryItem.findFirst.mockResolvedValue(mockPantryItem);
+            prismaMock.pantryItem.update.mockResolvedValue(mockPantryItem);
+            await upsertPantryItem(1, { ...baseItem, ...patch });
+            return prismaMock.pantryItem.update.mock.calls[0][0].data;
+        };
+
+        it('marking an item low keeps it in stock', async () => {
+            expect(await upsertWith({ isLow: true })).toMatchObject({
+                isInStock: true,
+                isLow: true,
+            });
+        });
+        it('marking an item out clears low', async () => {
+            expect(await upsertWith({ isInStock: false })).toMatchObject({
+                isInStock: false,
+                isLow: false,
+            });
+        });
+        it('out wins over low when both are sent', async () => {
+            expect(await upsertWith({ isInStock: false, isLow: true })).toMatchObject({
+                isInStock: false,
+                isLow: false,
+            });
+        });
+        it('restocking without saying low clears it', async () => {
+            expect(await upsertWith({ isInStock: true })).toMatchObject({
+                isInStock: true,
+                isLow: false,
+            });
+        });
+        it('an unrelated edit leaves low alone', async () => {
+            expect(await upsertWith({ quantity: '2' })).not.toHaveProperty('isLow');
+        });
+    });
+
     it('updates existing item when found by id', async () => {
         prismaMock.pantry.findUniqueOrThrow.mockResolvedValue(mockPantry as any);
         prismaMock.pantryItem.findFirst.mockResolvedValue(mockPantryItem);
