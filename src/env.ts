@@ -2,6 +2,8 @@ import 'dotenv/config';
 import { z } from 'zod';
 
 const EnvSchema = z.object({
+    // Web push for timer alerts: all three set turns it on (services/push-sender.ts).
+    APP_URL: z.string().url().optional(),
     CLERK_PUBLISHABLE_KEY: z.string().min(1),
     CLERK_SECRET_KEY: z.string().min(1),
     DATABASE_URL: z.string().url(),
@@ -11,6 +13,8 @@ const EnvSchema = z.object({
     NLP_PYTHON_PATH: z.string().min(1).optional(),
     OPENAI_API_KEY: z.string().min(1),
     PORT: z.coerce.number().int().positive().default(3000),
+    VAPID_PRIVATE_KEY: z.string().min(1).optional(),
+    VAPID_PUBLIC_KEY: z.string().min(1).optional(),
 });
 
 const result = EnvSchema.safeParse(process.env);

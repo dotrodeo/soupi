@@ -22,6 +22,9 @@ connected clients.
   each ingredient line into amount, unit and item.
 - **Pantry and shopping list.** Items with a category, stock status, staple flag,
   quantity and expiration date. The shopping list is the items flagged for it.
+- **Timer alerts.** sous-web registers each running cooking timer, and soupi sends a
+  web push to that device when it ends, so the alert arrives with the app closed
+  (on iPhone, in the app added to the Home Screen).
 - **Meal plan.** Dated plan days holding recipes.
 - **Live updates.** Every change is pushed to the household's open
   `/events/:householdId` Server-Sent Events streams.
@@ -61,16 +64,17 @@ Point a local [sous-web](https://github.com/dotrodeo/sous-web) at
 Environment variables are validated at startup; the server won't start without the
 required ones.
 
-| Variable                                    | Required | Description                                                                                             |
-| ------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`                              | yes      | Postgres connection string.                                                                             |
-| `CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY` | yes      | Keys from your Clerk application. sous-web must use the same application.                               |
-| `OPENAI_API_KEY`                            | yes      | Used by recipe import.                                                                                  |
-| `NLP_PYTHON_PATH`, `NLP_PARSER_PATH`        | yes\*    | Python interpreter and `python/parser.py`. \*The server starts without them, but saving a recipe fails. |
-| `CORS_ORIGINS`                              | no       | Comma-separated origins allowed to call the API, such as your sous-web URL. Unset allows any origin.    |
-| `PORT`, `HOST`                              | no       | Listen address. Defaults: `3000` and `0.0.0.0`. `.env.example` and the Docker image use `8080`.         |
-| `LOG_LEVEL`                                 | no       | `fatal`, `error`, `warn`, `info` (default), `debug` or `trace`.                                         |
-| `RUN_MIGRATIONS`                            | no       | Docker image only. `true` (default) runs `prisma migrate deploy` before the server starts.              |
+| Variable                                           | Required | Description                                                                                                                                                                                                |
+| -------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`                                     | yes      | Postgres connection string.                                                                                                                                                                                |
+| `CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`        | yes      | Keys from your Clerk application. sous-web must use the same application.                                                                                                                                  |
+| `OPENAI_API_KEY`                                   | yes      | Used by recipe import.                                                                                                                                                                                     |
+| `NLP_PYTHON_PATH`, `NLP_PARSER_PATH`               | yes\*    | Python interpreter and `python/parser.py`. \*The server starts without them, but saving a recipe fails.                                                                                                    |
+| `CORS_ORIGINS`                                     | no       | Comma-separated origins allowed to call the API, such as your sous-web URL. Unset allows any origin.                                                                                                       |
+| `PORT`, `HOST`                                     | no       | Listen address. Defaults: `3000` and `0.0.0.0`. `.env.example` and the Docker image use `8080`.                                                                                                            |
+| `APP_URL`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | no       | Timer alerts by web push. `APP_URL` is your sous-web URL (notifications link to it); generate the key pair with `npx web-push generate-vapid-keys`, one pair per environment. All three set turns push on. |
+| `LOG_LEVEL`                                        | no       | `fatal`, `error`, `warn`, `info` (default), `debug` or `trace`.                                                                                                                                            |
+| `RUN_MIGRATIONS`                                   | no       | Docker image only. `true` (default) runs `prisma migrate deploy` before the server starts.                                                                                                                 |
 
 **Clerk:** sous-web signs users in with an email and password, verified by an
 emailed code, so enable those in your Clerk application. Development keys

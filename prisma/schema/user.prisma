@@ -10,5 +10,6 @@ model User {
   deletedAt          DateTime?
 
   // Relations
-  households Household[]
+  households        Household[]
+  pushSubscriptions PushSubscription[]
 }
