@@ -1,0 +1,34 @@
+// Web push for timer alerts (sous-web#22). A subscription is one browser on one
+// device; a timer alert belongs to the subscription (device) that started it.
+model PushSubscription {
+  id         Int       @id @default(autoincrement())
+  endpoint   String    @unique
+  p256dh     String
+  auth       String
+  userAgent  String?
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  timers TimerAlert[]
+
+  @@index([userId])
+}
+
+model TimerAlert {
+  // The client's timer id (a UUID).
+  id        String   @id
+  label     String
+  detail    String
+  recipeId  Int?
+  endsAt    DateTime
+  createdAt DateTime @default(now())
+
+  subscription   PushSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  subscriptionId Int
+
+  @@index([subscriptionId])
+  @@index([endsAt])
+}

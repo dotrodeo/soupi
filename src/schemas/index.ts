@@ -66,3 +66,33 @@ export const JoinHouseholdSchema = z.object({
     // string and let the service normalize/look it up.
     joinToken: z.string().trim().min(1),
 });
+
+// ─── Web push and timer alerts (sous-web#22) ─────────────────────────────────
+
+export const PushSubscriptionSchema = z.object({
+    endpoint: z.string().url().max(1000),
+    keys: z.object({
+        auth: z.string().min(1).max(100),
+        p256dh: z.string().min(1).max(200),
+    }),
+});
+
+export const DeletePushSubscriptionSchema = z.object({
+    endpoint: z.string().url().max(1000),
+});
+
+/** A running timer on the device behind `subscriptionId`. The client sends the
+ *  time left rather than an end time, so device clock drift doesn't matter. */
+export const UpsertTimerSchema = z.object({
+    detail: z.string().max(120),
+    label: z.string().min(1).max(80),
+    recipeId: z.number().int().positive().nullable().optional(),
+    remainingMs: z
+        .number()
+        .int()
+        .min(1000)
+        .max(24 * 60 * 60 * 1000),
+    subscriptionId: z.number().int().positive(),
+});
+
+export const TimerIdSchema = z.string().uuid();

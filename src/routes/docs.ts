@@ -14,12 +14,15 @@ import {
     AddPlanDaySchema,
     AddRecipesToPlanDaySchema,
     CompleteRecipeSchema,
+    DeletePushSubscriptionSchema,
     JoinHouseholdSchema,
+    PushSubscriptionSchema,
     UpdateSortOrderSchema,
     UpdateUserSchema,
     UpsertCategorySchema,
     UpsertPantryItemSchema,
     UpsertRecipeSchema,
+    UpsertTimerSchema,
 } from '../schemas';
 
 const registry = new OpenAPIRegistry();
@@ -135,6 +138,88 @@ registry.registerPath({
     security: secured,
     summary: 'Sync user from Clerk',
     tags: ['User'],
+});
+
+// ─── Timer alerts (web push) ──────────────────────────────────────────────────
+
+const TimerIdParam = z.object({
+    id: z.string().uuid().openapi({ example: '0b6c5a3e-1d2f-4c4b-9a7e-2f1e3d4c5b6a' }),
+});
+
+registry.registerPath({
+    method: 'get',
+    path: '/push/config',
+    responses: {
+        200: { description: '{ publicKey }: the VAPID public key, or null when push is off' },
+    },
+    security: secured,
+    summary: 'Get the web push public key',
+    tags: ['Timer alerts'],
+});
+
+registry.registerPath({
+    method: 'put',
+    path: '/push/subscription',
+    request: { body: { content: { 'application/json': { schema: PushSubscriptionSchema } } } },
+    responses: {
+        200: { description: "{ id }: this device's subscription id" },
+        400: { description: 'Invalid body, or not a push service endpoint' },
+        503: { description: 'Push is not configured' },
+    },
+    security: secured,
+    summary: 'Register this device for timer alerts',
+    tags: ['Timer alerts'],
+});
+
+registry.registerPath({
+    method: 'delete',
+    path: '/push/subscription',
+    request: {
+        body: { content: { 'application/json': { schema: DeletePushSubscriptionSchema } } },
+    },
+    responses: { 204: { description: 'Subscription and its timers removed' } },
+    security: secured,
+    summary: 'Unregister this device',
+    tags: ['Timer alerts'],
+});
+
+registry.registerPath({
+    method: 'get',
+    path: '/timers',
+    request: { query: z.object({ subscriptionId: z.coerce.number().int().positive() }) },
+    responses: { 200: { description: "This device's pending timers, with time left" } },
+    security: secured,
+    summary: 'List pending timers',
+    tags: ['Timer alerts'],
+});
+
+registry.registerPath({
+    method: 'put',
+    path: '/timers/{id}',
+    request: {
+        body: { content: { 'application/json': { schema: UpsertTimerSchema } } },
+        params: TimerIdParam,
+    },
+    responses: {
+        200: { description: 'Timer scheduled; a push is sent when it ends' },
+        400: { description: 'Invalid id or body' },
+        404: { description: 'Subscription or timer not found' },
+        429: { description: 'Too many pending timers' },
+        503: { description: 'Push is not configured' },
+    },
+    security: secured,
+    summary: 'Start or reschedule a timer alert',
+    tags: ['Timer alerts'],
+});
+
+registry.registerPath({
+    method: 'delete',
+    path: '/timers/{id}',
+    request: { params: TimerIdParam },
+    responses: { 204: { description: 'Timer cancelled (or already sent)' } },
+    security: secured,
+    summary: 'Cancel a timer alert',
+    tags: ['Timer alerts'],
 });
 
 // ─── Household ────────────────────────────────────────────────────────────────

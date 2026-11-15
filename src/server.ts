@@ -2,12 +2,15 @@ import './env'; // Validate environment variables at startup — throws if any a
 import prisma from '../prisma';
 import logger from '../utils/logger';
 import app from './app';
+import { disarmAll, startTimerScheduler } from './services/timer-scheduler';
 
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
 
 const server = app.listen(PORT, HOST, () => {
     logger.info(`🚀 Server running at http://${HOST}:${PORT}`);
+    // Re-arm timer alerts that were pending when the server last stopped.
+    startTimerScheduler().catch((err) => logger.error({ err }, 'timer alerts not armed'));
 });
 
 // Graceful shutdown: stop accepting connections, disconnect Prisma, then exit.
@@ -15,6 +18,7 @@ const server = app.listen(PORT, HOST, () => {
 // and SSE streams are dropped abruptly.
 async function shutdown(signal: string) {
     logger.info(`${signal} received, shutting down…`);
+    disarmAll();
 
     server.close(async () => {
         await prisma.$disconnect();

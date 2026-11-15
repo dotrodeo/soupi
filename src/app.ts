@@ -14,8 +14,10 @@ import householdRoutes from './routes/household';
 import metaRoutes from './routes/meta';
 import pantryRoutes from './routes/pantry';
 import planRoutes from './routes/plan';
+import pushRoutes from './routes/push';
 import recipeRoutes from './routes/recipe';
 import shoppingListRoutes from './routes/shopping-list';
+import timerRoutes from './routes/timers';
 import userRoutes from './routes/user';
 
 const app = express();
@@ -75,6 +77,8 @@ app.use('/docs', docsRoutes);
 app.use('/meta', metaRoutes);
 app.use('/events', streamRateLimit, eventRoutes);
 app.use('/user', generalRateLimit, userRoutes);
+app.use('/push', generalRateLimit, pushRoutes);
+app.use('/timers', generalRateLimit, timerRoutes);
 
 // Household data routes. Limiters are applied once, ahead of the routers: a limiter
 // mounted with each router would count a request once per router it passes through.

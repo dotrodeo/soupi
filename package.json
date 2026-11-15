@@ -1,7 +1,7 @@
 {
     "private": true,
     "name": "soupi",
-    "version": "2.2.0",
+    "version": "2.3.0",
     "license": "MIT",
     "scripts": {
         "start": "ts-node src/server.ts",
@@ -42,6 +42,7 @@
         "puppeteer": "^24.25.0",
         "superjson": "^2.2.5",
         "swagger-ui-express": "^5.0.1",
+        "web-push": "^3.6.7",
         "zod": "^4.1.12"
     },
     "devDependencies": {
@@ -52,6 +53,7 @@
         "@types/node": "22.15.32",
         "@types/pino-http": "^5.8.4",
         "@types/swagger-ui-express": "^4.1.8",
+        "@types/web-push": "^3.6.4",
         "@vitest/coverage-v8": "^4.1.2",
         "@vitest/ui": "^4.1.2",
         "dotenv": "^17.2.3",
