@@ -14,17 +14,20 @@ connected clients.
   categories. Other people join it with the household's join code.
 - **Recipes.** Create, edit and delete recipes with per-household tags and ratings,
   and track when each was last made. Marking a recipe as made can mark the pantry
-  items it used up as out of stock, and removes it from the meal plan.
+  items it used up as out of stock or running low, and removes it from the meal plan.
 - **Recipe import.** Given a URL, soupi loads the page in headless Chromium, reads
   its structured recipe data (or the post caption, for TikTok and Instagram), and has
   an OpenAI model turn that into a recipe. A Python parser
   ([ingredient-parser-nlp](https://pypi.org/project/ingredient-parser-nlp/)) splits
   each ingredient line into amount, unit and item.
-- **Pantry and shopping list.** Items with a category, stock status, staple flag,
-  quantity and expiration date. The shopping list is the items flagged for it.
+- **Pantry and shopping list.** Items with a category, stock status (in stock,
+  running low or out), staple flag, quantity and expiration date. The shopping list
+  is the items flagged for it.
 - **Timer alerts.** sous-web registers each running cooking timer, and soupi sends a
   web push to that device when it ends, so the alert arrives with the app closed
-  (on iPhone, in the app added to the Home Screen).
+  (on iPhone, in the app added to the Home Screen). Pending timers are stored in the
+  database and re-armed when the server restarts. Off unless configured (see
+  [Configuration](#configuration)).
 - **Meal plan.** Dated plan days holding recipes.
 - **Live updates.** Every change is pushed to the household's open
   `/events/:householdId` Server-Sent Events streams.
@@ -35,7 +38,7 @@ connectivity.
 ## Stack
 
 Node 22, Express 5, TypeScript, Prisma 6, PostgreSQL 17, Clerk, Zod, Pino, Puppeteer,
-Python 3, Vitest.
+web-push, Python 3, Vitest.
 
 ## Run it locally
 
@@ -99,6 +102,11 @@ one host.
     (host `db`), your Clerk and OpenAI keys, `CORS_ORIGINS` (your sous-web URL), and
     `API_PORT` (the host port, bound to `127.0.0.1`).
 
+    For timer alerts, also set `APP_URL` (your sous-web URL) and a VAPID key pair
+    from `npx web-push generate-vapid-keys`. Use a different pair in each
+    environment, and keep it: changing it invalidates every device's alerts until
+    the app re-subscribes.
+
 2. Start it. Pass `--env-file` on **every** `docker compose` command; without it
    Compose falls back to `dev` with empty database credentials.
 
@@ -133,8 +141,8 @@ URL.
 docker exec soupi_prod_db pg_dump -U <POSTGRES_USER> -d <POSTGRES_DB> > soupi.sql
 ```
 
-Run one API instance per environment: rate limits and live-update connections are
-held in memory.
+Run one API instance per environment: rate limits, live-update connections and the
+timer-alert schedule are held in memory.
 
 ## Development
 
@@ -160,7 +168,8 @@ tests/unit/       Vitest tests with a mocked Prisma client
 ```
 
 Data routes live under `/household/:householdId/…` and require a Clerk session token
-belonging to a member of that household. Request bodies are validated with Zod, which
+belonging to a member of that household. `/user`, `/push` and `/timers` belong to the
+signed-in user instead. Request bodies are validated with Zod, which
 drops fields the schema doesn't list. Records are soft-deleted (`deletedAt`) by `DELETE`
 routes.
 
