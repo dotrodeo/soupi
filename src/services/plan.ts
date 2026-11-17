@@ -1,6 +1,7 @@
 import { Plan } from '@prisma/client';
 
 import prisma from '../../prisma';
+import { NotFoundError } from '../middleware/errors';
 
 export async function addPlanDay(
     householdId: number,
@@ -30,13 +31,25 @@ export async function addPlanDay(
     });
 }
 
-export async function addRecipesToPlanDay({
-    planDayId,
-    recipeIds,
-}: {
-    planDayId: number;
-    recipeIds: number[];
-}): Promise<void> {
+export async function addRecipesToPlanDay(
+    householdId: number,
+    {
+        planDayId,
+        recipeIds,
+    }: {
+        planDayId: number;
+        recipeIds: number[];
+    },
+): Promise<void> {
+    await requirePlanDay(householdId, planDayId);
+    // Only this household's recipes; another household's would be readable
+    // through GET /plan once connected.
+    const unique = [...new Set(recipeIds)];
+    const owned = await prisma.recipe.count({
+        where: { deletedAt: null, householdId, id: { in: unique } },
+    });
+    if (owned !== unique.length) throw new NotFoundError('Recipe not found');
+
     await prisma.planDay.update({
         data: {
             recipes: {
@@ -91,22 +104,27 @@ export async function getPlan(householdId: number): Promise<Plan> {
     });
 }
 
-export async function removePlanDay(planDayId: number): Promise<void> {
-    await prisma.planDay.update({
+export async function removePlanDay(householdId: number, planDayId: number): Promise<void> {
+    const { count } = await prisma.planDay.updateMany({
         data: {
             deletedAt: new Date(),
         },
-        where: { id: planDayId },
+        where: { deletedAt: null, id: planDayId, plan: { householdId } },
     });
+    if (!count) throw new NotFoundError('Plan day not found');
 }
 
-export async function removeRecipeFromPlanDay({
-    planDayId,
-    recipeId,
-}: {
-    planDayId: number;
-    recipeId: number;
-}): Promise<void> {
+export async function removeRecipeFromPlanDay(
+    householdId: number,
+    {
+        planDayId,
+        recipeId,
+    }: {
+        planDayId: number;
+        recipeId: number;
+    },
+): Promise<void> {
+    await requirePlanDay(householdId, planDayId);
     await prisma.planDay.update({
         data: {
             recipes: {
@@ -115,4 +133,13 @@ export async function removeRecipeFromPlanDay({
         },
         where: { id: planDayId },
     });
+}
+
+/** A live plan day of this household's plan, or NotFoundError. */
+async function requirePlanDay(householdId: number, planDayId: number) {
+    const day = await prisma.planDay.findFirst({
+        select: { id: true },
+        where: { deletedAt: null, id: planDayId, plan: { householdId } },
+    });
+    if (!day) throw new NotFoundError('Plan day not found');
 }

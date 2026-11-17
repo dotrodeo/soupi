@@ -31,7 +31,7 @@ router.delete(
     `${prefix}/day/:planDayId`,
     requireAuth(),
     withHousehold(),
-    handle((req) => planService.removePlanDay(Number(req.params.planDayId))),
+    handle((req) => planService.removePlanDay(req.household.id, Number(req.params.planDayId))),
 );
 
 router.post(
@@ -41,7 +41,7 @@ router.post(
     handle((req, res) => {
         const body = parseBody(res, AddRecipesToPlanDaySchema, req.body);
         if (!body) return;
-        return planService.addRecipesToPlanDay({
+        return planService.addRecipesToPlanDay(req.household.id, {
             planDayId: Number(req.params.planDayId),
             recipeIds: body,
         });
@@ -53,7 +53,7 @@ router.delete(
     requireAuth(),
     withHousehold(),
     handle((req) =>
-        planService.removeRecipeFromPlanDay({
+        planService.removeRecipeFromPlanDay(req.household.id, {
             planDayId: Number(req.params.planDayId),
             recipeId: Number(req.params.recipeId),
         }),

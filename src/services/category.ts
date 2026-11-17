@@ -3,6 +3,7 @@ import { ItemCategory } from '@prisma/client';
 import prisma from '../../prisma';
 import { SSEMessageType } from '../../utils/constants';
 import { broadcast } from '../../utils/sse';
+import { NotFoundError } from '../middleware/errors';
 
 type ItemCategoryInput = Partial<
     Omit<ItemCategory, 'createdAt' | 'deletedAt' | 'pantryId' | 'updatedAt'>
@@ -72,7 +73,7 @@ export async function updateSortOrder(
             });
 
             if (!pantry) {
-                throw new Error('Pantry not found or access denied');
+                throw new NotFoundError('Pantry not found');
             }
 
             await prisma.$transaction(
@@ -103,7 +104,7 @@ export async function upsertCategory(
             });
 
             if (!pantry) {
-                throw new Error('Pantry not found or access denied');
+                throw new NotFoundError('Pantry not found');
             }
 
             const { id, ...data } = item;
@@ -118,7 +119,7 @@ export async function upsertCategory(
             });
 
             if (id && !existing) {
-                throw new Error('Category not found');
+                throw new NotFoundError('Category not found');
             }
 
             if (existing) {

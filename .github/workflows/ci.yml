@@ -11,6 +11,21 @@ jobs:
         name: Lint, Build & Test
         runs-on: ubuntu-latest
 
+        # A throwaway Postgres for the integration tests (tests/integration).
+        services:
+            postgres:
+                image: postgres:17-alpine
+                env:
+                    POSTGRES_PASSWORD: postgres
+                    POSTGRES_DB: soupi_test
+                ports:
+                    - 5432:5432
+                options: >-
+                    --health-cmd pg_isready
+                    --health-interval 5s
+                    --health-timeout 5s
+                    --health-retries 10
+
         steps:
             - uses: actions/checkout@v4
 
@@ -40,3 +55,8 @@ jobs:
 
             - name: Test
               run: npm test
+
+            - name: Integration tests (household scoping)
+              run: npm run test:integration
+              env:
+                  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/soupi_test

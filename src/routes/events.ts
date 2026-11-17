@@ -2,6 +2,7 @@ import { Router } from 'express';
 
 import { addClient } from '../../utils/sse';
 import requireAuth from '../middleware/require-auth';
+import { withHousehold } from '../middleware/with-household';
 
 const router = Router();
 
@@ -10,7 +11,8 @@ const router = Router();
 // reconnect storm (each reconnect spends a rate-limit slot).
 const HEARTBEAT_MS = 25_000;
 
-router.get('/:householdId', requireAuth(), (req, res) => {
+// withHousehold: only members may subscribe to a household's live updates.
+router.get('/:householdId', requireAuth(), withHousehold(), (req, res) => {
     // Required headers for SSE
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -19,9 +21,7 @@ router.get('/:householdId', requireAuth(), (req, res) => {
     // default), so a flapping connection doesn't hammer the endpoint.
     res.write('retry: 10000\n\n');
 
-    const householdId = req.params.householdId;
-
-    addClient(Number(householdId), res);
+    addClient(req.household.id, res);
 
     // Send an initial event
     res.write(`data: ${JSON.stringify({ message: 'connected' })}\n\n`);
