@@ -13,6 +13,7 @@ import PackageJson from '../../package.json';
 import {
     AddPlanDaySchema,
     AddRecipesToPlanDaySchema,
+    AddToShoppingListSchema,
     CompleteRecipeSchema,
     DeletePushSubscriptionSchema,
     JoinHouseholdSchema,
@@ -532,6 +533,23 @@ registry.registerPath({
     },
     security: secured,
     summary: 'Get shopping list grouped by category',
+    tags: ['Shopping List'],
+});
+
+registry.registerPath({
+    method: 'post',
+    path: '/household/{householdId}/pantry/{pantryId}/shopping-list',
+    request: {
+        body: { content: { 'application/json': { schema: AddToShoppingListSchema } } },
+        params: pantryParams,
+    },
+    responses: {
+        200: { description: '{ added }: items now on the list (new names become new items)' },
+        400: { description: 'Invalid body, or nothing to add' },
+        403: { description: 'Access denied' },
+    },
+    security: secured,
+    summary: 'Add several items to the shopping list',
     tags: ['Shopping List'],
 });
 
