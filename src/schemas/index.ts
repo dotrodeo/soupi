@@ -51,6 +51,13 @@ export const AddToShoppingListSchema = z
         message: 'Nothing to add',
     });
 
+/** How an ingredient matches the pantry: a pantry item, or null for "always
+ *  have, don't track". `name` is the ingredient's name (normalized by the server). */
+export const UpsertIngredientLinkSchema = z.object({
+    name: z.string().trim().min(1).max(100),
+    pantryItemId: z.number().int().positive().nullable(),
+});
+
 export const UpsertCategorySchema = z.object({
     icon: z.string().nullable().optional(),
     id: z.number().int().positive().optional(),

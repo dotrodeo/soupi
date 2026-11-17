@@ -21,6 +21,7 @@ import {
     UpdateSortOrderSchema,
     UpdateUserSchema,
     UpsertCategorySchema,
+    UpsertIngredientLinkSchema,
     UpsertPantryItemSchema,
     UpsertRecipeSchema,
     UpsertTimerSchema,
@@ -551,6 +552,55 @@ registry.registerPath({
     security: secured,
     summary: 'Add several items to the shopping list',
     tags: ['Shopping List'],
+});
+
+// ─── Ingredient links ─────────────────────────────────────────────────────────
+
+registry.registerPath({
+    method: 'get',
+    path: '/household/{householdId}/ingredient-links',
+    request: { params: z.object({ householdId: HouseholdIdParam }) },
+    responses: {
+        200: { description: "The household's ingredient-to-pantry links" },
+        403: { description: 'Access denied' },
+    },
+    security: secured,
+    summary: 'List ingredient links',
+    tags: ['Ingredient links'],
+});
+
+registry.registerPath({
+    method: 'put',
+    path: '/household/{householdId}/ingredient-links',
+    request: {
+        body: { content: { 'application/json': { schema: UpsertIngredientLinkSchema } } },
+        params: z.object({ householdId: HouseholdIdParam }),
+    },
+    responses: {
+        200: { description: 'Link saved (by normalized ingredient name)' },
+        400: { description: 'Invalid body' },
+        403: { description: 'Access denied' },
+        404: { description: 'Pantry item not found' },
+    },
+    security: secured,
+    summary: 'Match an ingredient to a pantry item, or mark it untracked',
+    tags: ['Ingredient links'],
+});
+
+registry.registerPath({
+    method: 'delete',
+    path: '/household/{householdId}/ingredient-links/{id}',
+    request: {
+        params: z.object({ householdId: HouseholdIdParam, id: z.coerce.number().int().positive() }),
+    },
+    responses: {
+        204: { description: 'Link removed' },
+        403: { description: 'Access denied' },
+        404: { description: 'Not found' },
+    },
+    security: secured,
+    summary: 'Remove an ingredient link (back to automatic matching)',
+    tags: ['Ingredient links'],
 });
 
 // ─── Meal Plan ────────────────────────────────────────────────────────────────
