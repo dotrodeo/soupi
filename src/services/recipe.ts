@@ -81,6 +81,7 @@ export async function completeRecipe(
         const planned = await tx.planDay.findMany({
             select: { id: true },
             where: {
+                plan: { householdId },
                 recipes: { some: { id: completion.recipeId } },
             },
         });

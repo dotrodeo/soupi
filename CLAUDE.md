@@ -23,16 +23,24 @@ Python ingredient parser (`python/`). `/ai` routes call OpenAI.
 - `src/schemas/index.ts`: Zod request schemas. `z.object` **strips unknown keys**,
   so a field the client sends but the schema lacks is silently dropped (no 400).
   When you add a column, add it to the schema too.
-- `src/middleware/handle.ts`: wraps handlers, maps errors to responses.
+- `src/middleware/handle.ts`: wraps handlers, maps errors to responses: a
+  `NotFoundError` (`src/middleware/errors.ts`) or Prisma's P2025 becomes 404,
+  anything else 500.
 - `prisma/schema/*.prisma`: modular schema; migrations in `prisma/schema/migrations/`.
 - `utils/`: logger, SSE, join codes, dates, AI helpers.
 - `tests/unit/`: Vitest with a mocked Prisma (`tests/mocks/prisma.ts`) and mocked
-  broadcast (`tests/mocks/broadcast.ts`). There are no DB integration tests.
+  broadcast (`tests/mocks/broadcast.ts`).
+- `tests/integration/`: the real app against a real Postgres (see its README).
+  `household-scoping.test.ts` seeds two households and calls every route as one
+  household's member with the other's ids. **A new route that takes a household's
+  ids gets a row there**: 403 for the other household in the path, 404 for its ids
+  under your own household, and the other household's data must be unchanged.
 
 Conventions: soft deletes via `deletedAt` (filter them out in reads), done by `DELETE`
 routes — upsert schemas don't accept `deletedAt`, and Zod would silently drop it. Scope
 every lookup by a client-sent id to the household (`pantry: { householdId }` or
-equivalent). ESLint with
+equivalent), and throw `NotFoundError` (404) when it isn't found, so another
+household's id looks the same as a missing one. ESLint with
 `perfectionist` (sorted keys and imports), Prettier with 4-space indent.
 
 ## Checks
@@ -44,9 +52,12 @@ npm run lint
 npm run build            # tsc
 npm run typecheck        # tsc over tests, seed and src
 npm test
+# integration: a local throwaway Postgres, see tests/integration/README.md
+DATABASE_URL=postgresql://postgres:it@127.0.0.1:55432/soupi_test npm run test:integration
 ```
 
-CI runs the same steps on every PR and on pushes to `main`.
+CI runs the same steps on every PR and on pushes to `main`, with a Postgres service
+container for the integration tests.
 
 ## Workflow
 

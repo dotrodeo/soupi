@@ -1,7 +1,7 @@
 {
     "private": true,
     "name": "soupi",
-    "version": "2.4.0",
+    "version": "2.4.1",
     "license": "MIT",
     "scripts": {
         "start": "ts-node src/server.ts",
@@ -12,6 +12,7 @@
         "deploy": "bash scripts/deploy.sh",
         "migrate": "prisma migrate deploy",
         "test": "vitest run",
+        "test:integration": "vitest run --config vitest.integration.config.ts",
         "typecheck": "tsc -p tsconfig.test.json --noEmit",
         "test:watch": "vitest",
         "test:coverage": "vitest run --coverage",

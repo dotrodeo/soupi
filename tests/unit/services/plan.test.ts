@@ -77,46 +77,88 @@ describe('addPlanDay()', () => {
 });
 
 describe('removePlanDay()', () => {
-    it('soft-deletes the plan day', async () => {
-        prismaMock.planDay.update.mockResolvedValue({ ...mockPlanDay, deletedAt: new Date() });
+    it("soft-deletes a plan day of the household's plan", async () => {
+        prismaMock.planDay.updateMany.mockResolvedValue({ count: 1 });
 
-        await removePlanDay(1);
+        await removePlanDay(7, 1);
 
-        expect(prismaMock.planDay.update).toHaveBeenCalledWith(
-            expect.objectContaining({
-                data: { deletedAt: expect.any(Date) },
-                where: { id: 1 },
-            }),
-        );
+        expect(prismaMock.planDay.updateMany).toHaveBeenCalledWith({
+            data: { deletedAt: expect.any(Date) },
+            where: { deletedAt: null, id: 1, plan: { householdId: 7 } },
+        });
+    });
+
+    it("throws not found for another household's plan day", async () => {
+        prismaMock.planDay.updateMany.mockResolvedValue({ count: 0 });
+
+        await expect(removePlanDay(7, 99)).rejects.toThrow('Plan day not found');
     });
 });
 
 describe('addRecipesToPlanDay()', () => {
-    it('connects recipe ids to the plan day', async () => {
+    it("connects the household's recipes to its plan day", async () => {
+        prismaMock.planDay.findFirst.mockResolvedValue({ id: 1 } as any);
+        prismaMock.recipe.count.mockResolvedValue(2);
         prismaMock.planDay.update.mockResolvedValue(mockPlanDay as any);
 
-        await addRecipesToPlanDay({ planDayId: 1, recipeIds: [10, 11] });
+        await addRecipesToPlanDay(7, { planDayId: 1, recipeIds: [10, 11, 10] });
 
+        expect(prismaMock.planDay.findFirst).toHaveBeenCalledWith({
+            select: { id: true },
+            where: { deletedAt: null, id: 1, plan: { householdId: 7 } },
+        });
+        expect(prismaMock.recipe.count).toHaveBeenCalledWith({
+            where: { deletedAt: null, householdId: 7, id: { in: [10, 11] } },
+        });
         expect(prismaMock.planDay.update).toHaveBeenCalledWith({
             data: {
                 recipes: {
-                    connect: [{ id: 10 }, { id: 11 }],
+                    connect: [{ id: 10 }, { id: 11 }, { id: 10 }],
                 },
             },
             where: { id: 1 },
         });
     });
+
+    it("refuses another household's plan day", async () => {
+        prismaMock.planDay.findFirst.mockResolvedValue(null);
+
+        await expect(addRecipesToPlanDay(7, { planDayId: 99, recipeIds: [10] })).rejects.toThrow(
+            'Plan day not found',
+        );
+        expect(prismaMock.planDay.update).not.toHaveBeenCalled();
+    });
+
+    it("refuses another household's recipes", async () => {
+        prismaMock.planDay.findFirst.mockResolvedValue({ id: 1 } as any);
+        prismaMock.recipe.count.mockResolvedValue(1);
+
+        await expect(addRecipesToPlanDay(7, { planDayId: 1, recipeIds: [10, 99] })).rejects.toThrow(
+            'Recipe not found',
+        );
+        expect(prismaMock.planDay.update).not.toHaveBeenCalled();
+    });
 });
 
 describe('removeRecipeFromPlanDay()', () => {
-    it('disconnects the recipe from the plan day', async () => {
+    it("disconnects the recipe from the household's plan day", async () => {
+        prismaMock.planDay.findFirst.mockResolvedValue({ id: 1 } as any);
         prismaMock.planDay.update.mockResolvedValue(mockPlanDay as any);
 
-        await removeRecipeFromPlanDay({ planDayId: 1, recipeId: 42 });
+        await removeRecipeFromPlanDay(7, { planDayId: 1, recipeId: 42 });
 
         expect(prismaMock.planDay.update).toHaveBeenCalledWith({
             data: { recipes: { disconnect: { id: 42 } } },
             where: { id: 1 },
         });
+    });
+
+    it("refuses another household's plan day", async () => {
+        prismaMock.planDay.findFirst.mockResolvedValue(null);
+
+        await expect(removeRecipeFromPlanDay(7, { planDayId: 99, recipeId: 42 })).rejects.toThrow(
+            'Plan day not found',
+        );
+        expect(prismaMock.planDay.update).not.toHaveBeenCalled();
     });
 });

@@ -20,6 +20,8 @@ export default defineConfig({
             },
         },
         environment: 'node',
+        // Integration tests need a database: npm run test:integration.
+        exclude: ['tests/integration/**', 'node_modules/**'],
         globals: true,
         include: ['tests/**/*.test.ts'],
         setupFiles: ['tests/setup.ts'],

@@ -3,6 +3,7 @@ import { Pantry, PantryItem } from '@prisma/client';
 import prisma from '../../prisma';
 import { SSEMessageType } from '../../utils/constants';
 import { broadcast } from '../../utils/sse';
+import { NotFoundError } from '../middleware/errors';
 
 type PantryItemInput = Partial<Omit<PantryItem, 'createdAt' | 'deletedAt' | 'updatedAt'>> & {
     name: string;
@@ -81,10 +82,20 @@ export async function upsertPantryItem(
             });
 
             if (!pantry) {
-                throw new Error('Pantry not found or access denied');
+                throw new NotFoundError('Pantry not found');
             }
 
             const { id, ...data } = item;
+
+            // A category must be one of this pantry's; otherwise the item would
+            // show another household's category.
+            if (data.categoryId != null) {
+                const category = await prisma.itemCategory.findFirst({
+                    select: { id: true },
+                    where: { deletedAt: null, id: data.categoryId, pantryId: item.pantryId },
+                });
+                if (!category) throw new NotFoundError('Category not found');
+            }
 
             // An out-of-stock item is no longer in the pantry, so any expiration
             // date is meaningless — clear it whenever stock is set to false.
@@ -117,7 +128,7 @@ export async function upsertPantryItem(
             // check above ties to the household). Otherwise refuse, rather than
             // editing another household's item or resurrecting a deleted one.
             if (id && !existing) {
-                throw new Error('Pantry item not found');
+                throw new NotFoundError('Pantry item not found');
             }
 
             if (existing) {

@@ -146,15 +146,16 @@ timer-alert schedule are held in memory.
 
 ## Development
 
-| Command                                | What it does              |
-| -------------------------------------- | ------------------------- |
-| `npm run dev`                          | Dev server with reload    |
-| `npm run build`                        | Compile to `dist/`        |
-| `npm test`                             | Unit tests (Vitest)       |
-| `npm run typecheck`                    | Type-check tests and seed |
-| `npm run lint`, `npm run format`       | ESLint, Prettier          |
-| `npx prisma migrate dev --name <name>` | Create a migration        |
-| `npm run studio`                       | Browse the database       |
+| Command                                | What it does                                                                           |
+| -------------------------------------- | -------------------------------------------------------------------------------------- |
+| `npm run dev`                          | Dev server with reload                                                                 |
+| `npm run build`                        | Compile to `dist/`                                                                     |
+| `npm test`                             | Unit tests (Vitest)                                                                    |
+| `npm run test:integration`             | Integration tests (needs a local `*_test` Postgres; see `tests/integration/README.md`) |
+| `npm run typecheck`                    | Type-check tests and seed                                                              |
+| `npm run lint`, `npm run format`       | ESLint, Prettier                                                                       |
+| `npx prisma migrate dev --name <name>` | Create a migration                                                                     |
+| `npm run studio`                       | Browse the database                                                                    |
 
 ```
 src/routes/       HTTP layer: auth, household access check, request validation
@@ -165,6 +166,7 @@ prisma/schema/    Data model (one file per model) and migrations
 python/           Ingredient parser and scraper helpers
 utils/            Logging, live-update broadcaster, constants
 tests/unit/       Vitest tests with a mocked Prisma client
+tests/integration/ The app against a real Postgres: household scoping for every route
 ```
 
 Data routes live under `/household/:householdId/…` and require a Clerk session token

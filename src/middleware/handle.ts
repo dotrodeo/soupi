@@ -3,6 +3,7 @@ import he from 'he';
 import { z } from 'zod';
 
 import logger from '../../utils/logger';
+import { isNotFound } from './errors';
 
 export function handle(fn: (req: Request, res: Response) => unknown) {
     return async (req: Request, res: Response) => {
@@ -27,6 +28,16 @@ export function handle(fn: (req: Request, res: Response) => unknown) {
 
             res.json(decodeEntitiesDeep(result));
         } catch (error) {
+            // A missing id, or another household's (scoped queries don't find it).
+            if (isNotFound(error)) {
+                res.status(404).json({
+                    error:
+                        error instanceof Error && error.name === 'NotFoundError'
+                            ? error.message
+                            : 'Not found',
+                });
+                return;
+            }
             logger.error({ err: error }, 'Route error');
             res.status(500).json(
                 error instanceof Error
