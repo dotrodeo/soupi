@@ -40,6 +40,17 @@ export const UpsertPantryItemSchema = z.object({
     quantity: z.string().nullable().optional(),
 });
 
+/** Items to put on the shopping list at once: existing pantry items by id, and
+ *  ingredients with no pantry item yet by name. */
+export const AddToShoppingListSchema = z
+    .object({
+        itemIds: z.array(z.number().int().positive()).max(200).optional(),
+        names: z.array(z.string().trim().min(1).max(100)).max(200).optional(),
+    })
+    .refine((b) => (b.itemIds?.length ?? 0) + (b.names?.length ?? 0) > 0, {
+        message: 'Nothing to add',
+    });
+
 export const UpsertCategorySchema = z.object({
     icon: z.string().nullable().optional(),
     id: z.number().int().positive().optional(),
