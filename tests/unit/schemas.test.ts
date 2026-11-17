@@ -80,6 +80,13 @@ describe('CompleteRecipeSchema', () => {
     it('rejects rating above 5', () => {
         expect(CompleteRecipeSchema.safeParse({ rating: 6, recipeId: 1 }).success).toBe(false);
     });
+    it('accepts a note and trims it', () => {
+        const parsed = CompleteRecipeSchema.parse({ note: '  Nov 17: more salt ', recipeId: 1 });
+        expect(parsed.note).toBe('Nov 17: more salt');
+    });
+    it('rejects a blank note', () => {
+        expect(CompleteRecipeSchema.safeParse({ note: '   ', recipeId: 1 }).success).toBe(false);
+    });
     it('rejects rating below 0', () => {
         expect(CompleteRecipeSchema.safeParse({ rating: -1, recipeId: 1 }).success).toBe(false);
     });

@@ -13,6 +13,8 @@ export const UpsertRecipeSchema = z.object({
     ingredients: z.array(z.string()).optional(),
     instructions: z.array(z.string()).nullable().optional(),
     name: z.string().min(1).optional(),
+    /** Free-text notes kept with the recipe. */
+    notes: z.string().max(10000).nullable().optional(),
     prepTime: z.string().nullable().optional(),
     servings: z.string().nullable().optional(),
     source: z.string().url().nullable().optional(),
@@ -23,6 +25,8 @@ export const CompleteRecipeSchema = z.object({
     finishedPantryItems: z.array(z.number().int().positive()).optional(),
     /** Pantry items that are now running low (kept in stock, marked low). */
     lowPantryItems: z.array(z.number().int().positive()).optional(),
+    /** A line to add to the end of the recipe's notes, such as "Nov 17: needed 5 more minutes". */
+    note: z.string().trim().min(1).max(1000).optional(),
     rating: z.number().int().min(0).max(5).optional(),
     recipeId: z.number().int().positive(),
 });

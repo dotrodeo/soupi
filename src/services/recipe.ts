@@ -9,6 +9,7 @@ import { scrapeRecipe } from './scraper';
 type RecipeCompletion = {
     finishedPantryItems?: number[];
     lowPantryItems?: number[];
+    note?: string;
     rating?: number;
     recipeId: number;
 };
@@ -19,6 +20,7 @@ type RecipeUpsert = {
     ingredients?: string[];
     instructions?: null | string[];
     name?: string;
+    notes?: null | string;
     prepTime?: null | string;
     servings?: null | string;
     source?: null | string;
@@ -44,6 +46,7 @@ export async function completeRecipe(
         await tx.recipe.update({
             data: {
                 lastMade: new Date(),
+                ...(completion.note && { notes: appendNote(recipe.notes, completion.note) }),
                 rating: completion.rating || recipe.rating,
                 timesMade: { increment: 1 },
             },
@@ -204,6 +207,12 @@ export async function upsertRecipe(
         },
     );
 }
+
+/** Adds a line to the end of a recipe's notes, on its own line. */
+export const appendNote = (notes: null | string, line: string): string => {
+    const existing = (notes ?? '').trimEnd();
+    return existing ? `${existing}\n${line}` : line;
+};
 
 /** Finds or creates each named tag in the household and returns their ids. */
 const upsertTags = async (householdId: number, tags: { name: string }[]) => {
