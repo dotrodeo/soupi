@@ -1,19 +1,20 @@
 model PantryItem {
-  id               Int           @id @default(autoincrement())
+  id               Int              @id @default(autoincrement())
   name             String
   quantity         String?
-  isInStock        Boolean       @default(false)
+  isInStock        Boolean          @default(false)
   /// In stock but running low. Only meaningful while isInStock is true.
-  isLow            Boolean       @default(false)
-  isFavorite       Boolean       @default(false)
-  isInShoppingList Boolean       @default(false)
+  isLow            Boolean          @default(false)
+  isFavorite       Boolean          @default(false)
+  isInShoppingList Boolean          @default(false)
   purchasedAt      DateTime?
   expiresAt        DateTime?
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
   deletedAt        DateTime?
   categoryId       Int?
-  category         ItemCategory? @relation(fields: [categoryId], references: [id])
+  category         ItemCategory?    @relation(fields: [categoryId], references: [id])
   pantryId         Int
-  pantry           Pantry        @relation(fields: [pantryId], references: [id])
+  pantry           Pantry           @relation(fields: [pantryId], references: [id])
+  ingredientLinks  IngredientLink[]
 }

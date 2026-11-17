@@ -114,6 +114,9 @@ async function seedHousehold(tag: string) {
             tags: { connect: { id: recipeTag.id } },
         },
     });
+    const link = await prisma.ingredientLink.create({
+        data: { householdId: household.id, name: `synonym ${tag}`, pantryItemId: item.id },
+    });
     const plan = await prisma.plan.create({ data: { householdId: household.id } });
     const planDay = await prisma.planDay.create({
         data: { date: null, planId: plan.id, recipes: { connect: { id: recipe.id } } },
@@ -140,6 +143,7 @@ async function seedHousehold(tag: string) {
         category,
         household,
         item,
+        link,
         pantry,
         plan,
         planDay,
@@ -156,6 +160,7 @@ async function snapshotB() {
     const id = B.household.id;
     return JSON.stringify({
         household: await prisma.household.findUnique({ include: { members: true }, where: { id } }),
+        links: await prisma.ingredientLink.findMany({ where: { householdId: id } }),
         pantries: await prisma.pantry.findMany({
             include: { itemCategories: true, pantryItems: true },
             where: { householdId: id },
@@ -226,6 +231,9 @@ describe("routes with household B in the path are refused to A's member (403)", 
             ['DELETE', `/household/${h}/plan/day/${B.planDay.id}`],
             ['POST', `/household/${h}/plan/day/${B.planDay.id}/recipes`, [B.recipe.id]],
             ['DELETE', `/household/${h}/plan/day/${B.planDay.id}/recipes/${B.recipe.id}`],
+            ['GET', `/household/${h}/ingredient-links`],
+            ['PUT', `/household/${h}/ingredient-links`, { name: 'x', pantryItemId: B.item.id }],
+            ['DELETE', `/household/${h}/ingredient-links/${B.link.id}`],
         ];
     };
 
@@ -441,6 +449,20 @@ describe("B's ids under A's own household are refused, and B is unchanged", () =
                 path: `/household/${h}/plan/day/${B.planDay.id}/recipes/${B.recipe.id}`,
                 status: 404,
             },
+            // ingredient links
+            {
+                body: { name: 'scallions', pantryItemId: B.item.id },
+                method: 'PUT',
+                name: "link an ingredient to B's pantry item",
+                path: `/household/${h}/ingredient-links`,
+                status: 404,
+            },
+            {
+                method: 'DELETE',
+                name: "delete B's ingredient link",
+                path: `/household/${h}/ingredient-links/${B.link.id}`,
+                status: 404,
+            },
             // household
             {
                 body: { joinToken: 'WRONG-0000' },
@@ -520,6 +542,7 @@ describe("lists never include B's data", () => {
             `/household/${h}/pantry/${p}/shopping-list`,
             `/household/${h}/pantry/${B.pantry.id}/shopping-list`,
             `/household/${h}/plan`,
+            `/household/${h}/ingredient-links`,
             `/timers?subscriptionId=${B.subscription.id}`,
             `/user`,
         ]) {
@@ -557,8 +580,13 @@ describe('controls: the same requests on A’s own ids work', () => {
             await call('DELETE', `/household/${h}/plan/day/${A.planDay.id}`),
             await call('DELETE', `/household/${h}/pantry/${p}/items/${A.item.id}`),
             await call('DELETE', `/timers/${A.timer.id}`),
+            await call('PUT', `/household/${h}/ingredient-links`, {
+                name: 'Scallions',
+                pantryItemId: null,
+            }),
+            await call('DELETE', `/household/${h}/ingredient-links/${A.link.id}`),
         ].map((r) => r.status);
-        expect(results).toEqual([200, 200, 200, 200, 200, 204, 204, 204, 204, 204]);
+        expect(results).toEqual([200, 200, 200, 200, 200, 204, 204, 204, 204, 204, 200, 204]);
         expect(
             (
                 await call('POST', `/household/${h}/pantry/${p}/shopping-list`, {

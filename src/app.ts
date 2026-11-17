@@ -11,6 +11,7 @@ import docsRoutes from './routes/docs';
 import eventRoutes from './routes/events';
 import healthRoutes from './routes/health';
 import householdRoutes from './routes/household';
+import ingredientLinkRoutes from './routes/ingredient-link';
 import metaRoutes from './routes/meta';
 import pantryRoutes from './routes/pantry';
 import planRoutes from './routes/plan';
@@ -92,6 +93,7 @@ app.use(
     recipeRoutes,
     pantryRoutes,
     shoppingListRoutes,
+    ingredientLinkRoutes,
     categoryRoutes,
     planRoutes,
 );

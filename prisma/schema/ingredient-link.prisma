@@ -1,0 +1,20 @@
+// A household's fix for how a recipe ingredient matches its pantry (sous-web#39):
+// "scallions" means the "green onions" item, or "water" isn't tracked at all
+// (pantryItemId null). Keyed by the ingredient's normalized name, so one fix
+// applies to every recipe that uses it.
+model IngredientLink {
+  id        Int      @id @default(autoincrement())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  household   Household @relation(fields: [householdId], references: [id])
+  householdId Int
+
+  // null: "always have, don't track"
+  pantryItem   PantryItem? @relation(fields: [pantryItemId], references: [id], onDelete: Cascade)
+  pantryItemId Int?
+
+  @@unique([householdId, name])
+  @@index([pantryItemId])
+}
