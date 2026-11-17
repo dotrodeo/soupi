@@ -33,6 +33,7 @@ export const mockRecipe: Recipe & { ingredients: Ingredient[]; tags: RecipeTag[]
     instructions: ['Step 1', 'Step 2'],
     lastMade: null,
     name: 'Test Recipe',
+    notes: null,
     prepTime: '10 mins',
     rating: 0,
     servings: '4',

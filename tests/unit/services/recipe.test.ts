@@ -20,6 +20,7 @@ vi.mock('../../../src/services/scraper', () => ({
 
 // Import after mocks are set up
 const {
+    appendNote,
     completeRecipe,
     createRecipeFromUrl,
     deleteRecipe,
@@ -214,7 +215,47 @@ describe('deleteRecipe()', () => {
     });
 });
 
+describe('appendNote()', () => {
+    it('starts the notes when there are none', () => {
+        expect(appendNote(null, 'Nov 17: more salt')).toBe('Nov 17: more salt');
+        expect(appendNote('  \n', 'Nov 17: more salt')).toBe('Nov 17: more salt');
+    });
+    it('adds the line on its own line', () => {
+        expect(appendNote('Use half the chili.\n', 'Nov 17: more salt')).toBe(
+            'Use half the chili.\nNov 17: more salt',
+        );
+    });
+});
+
 describe('completeRecipe()', () => {
+    it('appends a note to the recipe notes', async () => {
+        prismaMock.$transaction.mockImplementation(async (cb: any) => cb(prismaMock));
+        prismaMock.recipe.findFirstOrThrow.mockResolvedValue({ ...mockRecipe, notes: 'Old.' });
+        prismaMock.recipe.update.mockResolvedValue(mockRecipe);
+        prismaMock.pantryItem.findMany.mockResolvedValue([]);
+        prismaMock.planDay.findMany.mockResolvedValue([]);
+
+        await completeRecipe(1, { note: 'Nov 17: more salt', recipeId: 1 });
+
+        expect(prismaMock.recipe.update).toHaveBeenCalledWith(
+            expect.objectContaining({
+                data: expect.objectContaining({ notes: 'Old.\nNov 17: more salt' }),
+            }),
+        );
+    });
+
+    it('leaves notes alone without a note', async () => {
+        prismaMock.$transaction.mockImplementation(async (cb: any) => cb(prismaMock));
+        prismaMock.recipe.findFirstOrThrow.mockResolvedValue({ ...mockRecipe, notes: 'Old.' });
+        prismaMock.recipe.update.mockResolvedValue(mockRecipe);
+        prismaMock.pantryItem.findMany.mockResolvedValue([]);
+        prismaMock.planDay.findMany.mockResolvedValue([]);
+
+        await completeRecipe(1, { recipeId: 1 });
+
+        expect(prismaMock.recipe.update.mock.calls[0][0].data).not.toHaveProperty('notes');
+    });
+
     it('increments timesMade and sets lastMade', async () => {
         // $transaction: call the callback
         prismaMock.$transaction.mockImplementation(async (cb: any) => cb(prismaMock));

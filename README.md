@@ -12,9 +12,10 @@ connected clients.
 
 - **Households.** Signing up creates a household with a pantry and a default set of
   categories. Other people join it with the household's join code.
-- **Recipes.** Create, edit and delete recipes with per-household tags and ratings,
-  and track when each was last made. Marking a recipe as made can mark the pantry
-  items it used up as out of stock or running low, and removes it from the meal plan.
+- **Recipes.** Create, edit and delete recipes with per-household tags, ratings and
+  free-text notes, and track when each was last made. Marking a recipe as made can
+  mark the pantry items it used up as out of stock or running low, add a line to its
+  notes, and removes it from the meal plan.
 - **Recipe import.** Given a URL, soupi loads the page in headless Chromium, reads
   its structured recipe data (or the post caption, for TikTok and Instagram), and has
   an OpenAI model turn that into a recipe. A Python parser
