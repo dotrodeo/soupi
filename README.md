@@ -17,9 +17,13 @@ connected clients.
   optional; a line that says "optional" is optional unless the client says otherwise. Marking a recipe as made can
   mark the pantry items it used up as out of stock or running low, add a line to its
   notes, and removes it from the meal plan.
-- **Recipe import.** Given a URL, soupi loads the page in headless Chromium, reads
-  its structured recipe data (or the post caption, for TikTok and Instagram), and has
-  an OpenAI model turn that into a recipe. A Python parser
+- **Recipe import.** Given a URL, soupi loads the page in headless Chromium and reads
+  the recipe with rules: the page's schema.org data (JSON-LD, then microdata), else
+  the "Ingredients" and "Directions" sections of the post (an "Optional:" section marks
+  its lines optional; a video or full-recipe link goes in the notes when the steps
+  aren't written out). For TikTok and Instagram it reads the post caption the same way.
+  Only when the rules find nothing, and `OPENAI_API_KEY` is set, does an OpenAI model
+  read the text instead (and follow a recipe link it finds there). A Python parser
   ([ingredient-parser-nlp](https://pypi.org/project/ingredient-parser-nlp/)) splits
   each ingredient line into amount, unit and item.
 - **Pantry and shopping list.** Items with a category, stock status (in stock,
@@ -44,8 +48,8 @@ web-push, Python 3, Vitest.
 
 ## Run it locally
 
-You need Node 22, Python 3, a Postgres database, a Clerk application and an OpenAI
-API key (see [Configuration](#configuration)).
+You need Node 22, Python 3, a Postgres database and a Clerk application; an OpenAI
+API key is optional (see [Configuration](#configuration)).
 
 ```bash
 npm ci                                   # also downloads Chromium for Puppeteer
@@ -73,7 +77,7 @@ required ones.
 | -------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `DATABASE_URL`                                     | yes      | Postgres connection string.                                                                                                                                                                                |
 | `CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`        | yes      | Keys from your Clerk application. sous-web must use the same application.                                                                                                                                  |
-| `OPENAI_API_KEY`                                   | yes      | Used by recipe import.                                                                                                                                                                                     |
+| `OPENAI_API_KEY`                                   | no       | Recipe import's fallback for pages and captions its rules can't read. Without it, those imports find no recipe.                                                                                            |
 | `NLP_PYTHON_PATH`, `NLP_PARSER_PATH`               | yes\*    | Python interpreter and `python/parser.py`. \*The server starts without them, but saving a recipe fails.                                                                                                    |
 | `CORS_ORIGINS`                                     | no       | Comma-separated origins allowed to call the API, such as your sous-web URL. Unset allows any origin.                                                                                                       |
 | `PORT`, `HOST`                                     | no       | Listen address. Defaults: `3000` and `0.0.0.0`. `.env.example` and the Docker image use `8080`.                                                                                                            |
@@ -101,7 +105,7 @@ one host.
     ```
 
     Set `ENV=prod`, the `POSTGRES_*` credentials, a `DATABASE_URL` that matches them
-    (host `db`), your Clerk and OpenAI keys, `CORS_ORIGINS` (your sous-web URL), and
+    (host `db`), your Clerk keys (and an OpenAI key, if you want the import fallback), `CORS_ORIGINS` (your sous-web URL), and
     `API_PORT` (the host port, bound to `127.0.0.1`).
 
     For timer alerts, also set `APP_URL` (your sous-web URL) and a VAPID key pair
