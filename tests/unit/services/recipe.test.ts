@@ -27,6 +27,8 @@ const {
     getAllRecipes,
     getAllRecipeTags,
     getRecipe,
+    mentionsOptional,
+    toIngredientRow,
     upsertRecipe,
 } = await import('../../../src/services/recipe');
 
@@ -40,6 +42,51 @@ describe('getAllRecipeTags()', () => {
             expect.objectContaining({ orderBy: { name: 'asc' }, where: { householdId: 1 } }),
         );
         expect(result).toEqual([mockTag]);
+    });
+});
+
+describe('optional ingredients', () => {
+    it('spots lines that say optional, as a word', () => {
+        expect(mentionsOptional('1 tbsp parsley, optional')).toBe(true);
+        expect(mentionsOptional('chili flakes (Optional)')).toBe(true);
+        expect(mentionsOptional('2 cups flour')).toBe(false);
+        expect(mentionsOptional('optionally garnish')).toBe(false);
+    });
+    it('turns plain lines into rows, detecting optional', () => {
+        expect(toIngredientRow('salt (optional)')).toEqual({
+            optional: true,
+            sentence: 'salt (optional)',
+        });
+        expect(toIngredientRow('2 eggs')).toEqual({ optional: false, sentence: '2 eggs' });
+    });
+    it('keeps an explicit flag, even against the text', () => {
+        expect(toIngredientRow({ optional: false, sentence: 'parsley, optional' })).toEqual({
+            optional: false,
+            sentence: 'parsley, optional',
+        });
+        expect(toIngredientRow({ optional: true, sentence: 'parsley' })).toEqual({
+            optional: true,
+            sentence: 'parsley',
+        });
+        expect(toIngredientRow({ sentence: 'basil, optional' }).optional).toBe(true);
+    });
+    it('saves the flag with each ingredient', async () => {
+        prismaMock.recipe.create.mockResolvedValue(mockRecipe);
+        prismaMock.recipe.findUniqueOrThrow.mockResolvedValue(mockRecipe);
+        prismaMock.$transaction.mockResolvedValue([]);
+
+        await upsertRecipe(1, {
+            ingredients: ['1 cup flour', { optional: true, sentence: 'parsley' }, 'salt, optional'],
+            name: 'Pancakes',
+        });
+
+        expect(prismaMock.ingredient.createManyAndReturn).toHaveBeenCalledWith({
+            data: [
+                { optional: false, recipeId: mockRecipe.id, sentence: '1 cup flour' },
+                { optional: true, recipeId: mockRecipe.id, sentence: 'parsley' },
+                { optional: true, recipeId: mockRecipe.id, sentence: 'salt, optional' },
+            ],
+        });
     });
 });
 

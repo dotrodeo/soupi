@@ -7,10 +7,17 @@ export const RecipeTagSchema = z.object({
     name: z.string().min(1),
 });
 
+// An ingredient line, either plain text or with its optional flag. Plain lines that
+// say "optional" are optional (services/recipe.ts).
+export const IngredientInputSchema = z.union([
+    z.string(),
+    z.object({ optional: z.boolean().optional(), sentence: z.string() }),
+]);
+
 export const UpsertRecipeSchema = z.object({
     cookTime: z.string().nullable().optional(),
     id: z.number().int().positive().optional(),
-    ingredients: z.array(z.string()).optional(),
+    ingredients: z.array(IngredientInputSchema).optional(),
     instructions: z.array(z.string()).nullable().optional(),
     name: z.string().min(1).optional(),
     /** Free-text notes kept with the recipe. */

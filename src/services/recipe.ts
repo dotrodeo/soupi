@@ -6,6 +6,9 @@ import { broadcast } from '../../utils/sse';
 import { parseIngredients } from './ingredient';
 import { scrapeRecipe } from './scraper';
 
+/** An ingredient line as sent by a client: plain text, or with its optional flag. */
+type IngredientInput = string | { optional?: boolean; sentence: string };
+
 type RecipeCompletion = {
     finishedPantryItems?: number[];
     lowPantryItems?: number[];
@@ -17,7 +20,7 @@ type RecipeCompletion = {
 type RecipeUpsert = {
     cookTime?: null | string;
     id?: number;
-    ingredients?: string[];
+    ingredients?: IngredientInput[];
     instructions?: null | string[];
     name?: string;
     notes?: null | string;
@@ -230,16 +233,28 @@ const upsertTags = async (householdId: number, tags: { name: string }[]) => {
     return rows.map(({ id }) => ({ id }));
 };
 
-const processIngredients = async (recipe: Recipe, ingredients?: string[]) => {
+/** Whether an ingredient line says it's optional ("parsley, optional"). */
+export const mentionsOptional = (sentence: string): boolean => /\boptional\b/i.test(sentence);
+
+/** A client's ingredient line as a row: plain lines are optional when they say so. */
+export const toIngredientRow = (input: IngredientInput) =>
+    typeof input === 'string'
+        ? { optional: mentionsOptional(input), sentence: input }
+        : {
+              optional: input.optional ?? mentionsOptional(input.sentence),
+              sentence: input.sentence,
+          };
+
+const processIngredients = async (recipe: Recipe, ingredients?: IngredientInput[]) => {
     if (ingredients && ingredients.length > 0) {
         await prisma.$transaction([
             prisma.ingredient.deleteMany({
                 where: { recipeId: recipe.id },
             }),
             prisma.ingredient.createManyAndReturn({
-                data: ingredients.map((sentence: string) => ({
+                data: ingredients.map((input) => ({
                     recipeId: recipe.id,
-                    sentence,
+                    ...toIngredientRow(input),
                 })),
             }),
         ]);

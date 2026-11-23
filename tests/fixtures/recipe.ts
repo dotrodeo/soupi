@@ -7,6 +7,7 @@ export const mockIngredient: Ingredient = {
     id: 1,
     item: 'flour',
     json: null,
+    optional: false,
     preparation: null,
     recipeId: 1,
     sentence: '2 cups flour',

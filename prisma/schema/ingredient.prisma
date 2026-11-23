@@ -6,6 +6,7 @@ model Ingredient {
   amount      Decimal?
   unit        String?
   preparation String?
+  optional    Boolean   @default(false)
   json        Json?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt

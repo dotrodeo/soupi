@@ -55,6 +55,22 @@ describe('UpsertRecipeSchema', () => {
     it('rejects invalid URL in source', () => {
         expect(UpsertRecipeSchema.safeParse({ source: 'not-a-url' }).success).toBe(false);
     });
+    it('accepts ingredient lines as text or with an optional flag', () => {
+        expect(
+            UpsertRecipeSchema.safeParse({
+                ingredients: [
+                    '1 cup flour',
+                    { optional: true, sentence: 'parsley' },
+                    { sentence: 'salt' },
+                ],
+            }).success,
+        ).toBe(true);
+    });
+    it('rejects an ingredient object without a sentence', () => {
+        expect(UpsertRecipeSchema.safeParse({ ingredients: [{ optional: true }] }).success).toBe(
+            false,
+        );
+    });
     it('rejects non-array instructions', () => {
         expect(UpsertRecipeSchema.safeParse({ instructions: 'do it' }).success).toBe(false);
     });
