@@ -13,7 +13,8 @@ connected clients.
 - **Households.** Signing up creates a household with a pantry and a default set of
   categories. Other people join it with the household's join code.
 - **Recipes.** Create, edit and delete recipes with per-household tags, ratings and
-  free-text notes, and track when each was last made. Marking a recipe as made can
+  free-text notes, and track when each was last made. Ingredients can be marked
+  optional; a line that says "optional" is optional unless the client says otherwise. Marking a recipe as made can
   mark the pantry items it used up as out of stock or running low, add a line to its
   notes, and removes it from the meal plan.
 - **Recipe import.** Given a URL, soupi loads the page in headless Chromium, reads
