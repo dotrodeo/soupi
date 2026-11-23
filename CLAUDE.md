@@ -8,8 +8,11 @@ so don't keep API shapes around just for it.
 ## Stack
 
 Express 5 + TypeScript, Prisma 6 on Postgres 17, Clerk auth, Zod validation, Pino
-logging, Vitest. Recipe import uses Puppeteer (system Chromium in the image) plus a
-Python ingredient parser (`python/`). `/ai` routes call OpenAI.
+logging, Vitest. Recipe import loads pages with Puppeteer (system Chromium in the
+image, presenting as regular Chrome because many recipe sites refuse headless
+browsers) and reads them with rules; OpenAI is only a fallback, used when
+`OPENAI_API_KEY` is set. A Python parser (`python/`) splits each saved ingredient
+line into amount, unit and item.
 
 ## Layout
 
@@ -27,7 +30,18 @@ Python ingredient parser (`python/`). `/ai` routes call OpenAI.
   `NotFoundError` (`src/middleware/errors.ts`) or Prisma's P2025 becomes 404,
   anything else 500.
 - `prisma/schema/*.prisma`: modular schema; migrations in `prisma/schema/migrations/`.
-- `utils/`: logger, SSE, join codes, dates, AI helpers.
+- `src/services/scraper.ts` + `src/services/import/`: recipe import. `parsePage()`
+  tries pure parsers in order: schema.org JSON-LD, microdata, the post's
+  "Ingredients"/"Directions" headings (`headings.ts` + `lines.ts`; an "Optional:"
+  section marks lines optional, links go to `notes` when there are no steps), and
+  for TikTok/Instagram the `og:description` caption (`caption.ts`). Only when they
+  all find nothing does `scrapeRecipe()` ask the AI. Test parsers with sample HTML
+  in `tests/unit/services/import.test.ts`; the orchestration (AI gating, link
+  following) is tested with puppeteer and `ai` mocked in `scraper.test.ts`.
+- Ingredients have an `optional` flag. Recipe saves take each ingredient as a plain
+  line or `{ sentence, optional }`; a plain line is optional when it says
+  "optional" (`toIngredientRow()` in `services/recipe.ts`).
+- `utils/`: logger, SSE, join codes, dates, constants.
 - `tests/unit/`: Vitest with a mocked Prisma (`tests/mocks/prisma.ts`) and mocked
   broadcast (`tests/mocks/broadcast.ts`).
 - `tests/integration/`: the real app against a real Postgres (see its README).
