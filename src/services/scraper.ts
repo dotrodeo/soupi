@@ -162,6 +162,10 @@ async function loadPage(url: string, social: boolean): Promise<string> {
     });
     try {
         const page = await browser.newPage();
+        // Present as the regular Chrome it is: several big recipe sites refuse a
+        // "HeadlessChrome" user agent (owner decision, soupi#32).
+        await page.setUserAgent((await browser.userAgent()).replace('HeadlessChrome', 'Chrome'));
+        await page.setExtraHTTPHeaders({ 'Accept-Language': 'en-US,en;q=0.9' });
         // Many recipe sites never go network-idle (ads); social and YouTube pages
         // aren't filled in until they do.
         const waitUntil =

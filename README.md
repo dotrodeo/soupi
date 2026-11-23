@@ -17,7 +17,8 @@ connected clients.
   optional; a line that says "optional" is optional unless the client says otherwise. Marking a recipe as made can
   mark the pantry items it used up as out of stock or running low, add a line to its
   notes, and removes it from the meal plan.
-- **Recipe import.** Given a URL, soupi loads the page in headless Chromium and reads
+- **Recipe import.** Given a URL, soupi loads the page in headless Chromium (presenting
+  as regular Chrome, since many recipe sites refuse headless browsers) and reads
   the recipe with rules: the page's schema.org data (JSON-LD, then microdata), else
   the "Ingredients" and "Directions" sections of the post (an "Optional:" section marks
   its lines optional; a video or full-recipe link goes in the notes when the steps

@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const pages = new Map<string, string>();
 const generateObject = vi.fn();
+const setUserAgent = vi.fn();
+const setExtraHTTPHeaders = vi.fn();
 
 vi.mock('puppeteer', () => ({
     default: {
@@ -14,8 +16,14 @@ vi.mock('puppeteer', () => ({
                     goto: vi.fn(async (u: string) => {
                         url = u;
                     }),
+                    setExtraHTTPHeaders,
+                    setUserAgent,
                 };
             }),
+            userAgent: vi.fn(
+                async () =>
+                    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/131.0.0.0 Safari/537.36',
+            ),
         })),
     },
 }));
@@ -64,6 +72,17 @@ describe('scrapeRecipe()', () => {
             source: 'https://example.com/toast',
         });
         expect(generateObject).not.toHaveBeenCalled();
+    });
+
+    it('presents itself as a regular Chrome, not HeadlessChrome', async () => {
+        pages.set('https://example.com/toast', recipePage);
+
+        await scrapeRecipe('https://example.com/toast');
+
+        expect(setUserAgent).toHaveBeenCalledWith(
+            'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        );
+        expect(setExtraHTTPHeaders).toHaveBeenCalledWith({ 'Accept-Language': 'en-US,en;q=0.9' });
     });
 
     it('returns null without an AI key when the rules find nothing', async () => {
