@@ -115,12 +115,17 @@ export async function createRecipeFromUrl(
         throw new Error('Failed to scrape recipe from URL');
     }
 
+    const optional = new Set(recipeData.optionalIngredients);
     const recipe: RecipeUpsert = {
-        cookTime: parseTimes(recipeData.cookTime),
-        ingredients: recipeData.ingredients,
+        cookTime: recipeData.cookTime,
+        ingredients: recipeData.ingredients.map((sentence, i) =>
+            // An "Optional:" section marks its lines; other lines go by their text.
+            optional.has(i) ? { optional: true, sentence } : sentence,
+        ),
         instructions: recipeData.instructions,
         name: recipeData.name || 'Untitled Recipe',
-        prepTime: parseTimes(recipeData.prepTime),
+        notes: recipeData.notes,
+        prepTime: recipeData.prepTime,
         servings: recipeData.servings,
         source: url,
     };
@@ -261,30 +266,4 @@ const processIngredients = async (recipe: Recipe, ingredients?: IngredientInput[
     }
 
     return parseIngredients(recipe.id);
-};
-
-const parseTimes = (time?: null | string | undefined) => {
-    if (!time) return time;
-
-    if (time.match(/PT\d+\w+/)) {
-        const [, minutes, flag] = /(\d+)(\w+)/.exec(time) || [];
-        let parsed = '';
-
-        if (flag === 'M') {
-            const mins = Number(minutes);
-            const hours = Math.floor(mins / 60);
-            const remMinutes = mins % 60;
-
-            if (hours > 0) {
-                parsed += `${hours} hour${hours > 1 ? 's ' : ' '}`;
-            }
-            if (remMinutes > 0) {
-                parsed += `${remMinutes} min${remMinutes > 1 ? 's' : ''}`;
-            }
-
-            return parsed.trim();
-        }
-    }
-
-    return time;
 };

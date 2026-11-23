@@ -421,16 +421,19 @@ describe('createRecipeFromUrl()', () => {
         );
     });
 
-    it('creates recipe from scraped data including ISO duration parsing', async () => {
+    it('creates the recipe with its notes and optional ingredients', async () => {
         const { scrapeRecipe } = await import('../../../src/services/scraper');
         vi.mocked(scrapeRecipe).mockResolvedValue({
-            cookTime: 'PT30M',
-            ingredients: ['1 cup flour'],
+            cookTime: '30 mins',
+            ingredients: ['1 cup flour', 'sliced chilies', 'salt, optional'],
             instructions: ['Mix ingredients'],
             name: 'Scraped Cake',
-            prepTime: 'PT90M',
+            notes: 'Video: https://www.youtube.com/watch?v=abc123',
+            optionalIngredients: [1],
+            prepTime: '1 hour 30 mins',
             servings: '4',
-        } as never);
+            source: 'https://example.com/recipe',
+        });
         prismaMock.recipe.create.mockResolvedValue(mockRecipe);
         prismaMock.recipe.findUniqueOrThrow.mockResolvedValue(mockRecipe);
         prismaMock.$transaction.mockResolvedValue([]);
@@ -441,10 +444,18 @@ describe('createRecipeFromUrl()', () => {
             expect.objectContaining({
                 data: expect.objectContaining({
                     cookTime: '30 mins',
+                    notes: 'Video: https://www.youtube.com/watch?v=abc123',
                     prepTime: '1 hour 30 mins',
                     source: 'https://example.com/recipe',
                 }),
             }),
         );
+        expect(prismaMock.ingredient.createManyAndReturn).toHaveBeenCalledWith({
+            data: [
+                { optional: false, recipeId: mockRecipe.id, sentence: '1 cup flour' },
+                { optional: true, recipeId: mockRecipe.id, sentence: 'sliced chilies' },
+                { optional: true, recipeId: mockRecipe.id, sentence: 'salt, optional' },
+            ],
+        });
     });
 });

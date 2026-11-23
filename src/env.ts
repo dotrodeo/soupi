@@ -11,7 +11,8 @@ const EnvSchema = z.object({
     LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
     NLP_PARSER_PATH: z.string().min(1).optional(),
     NLP_PYTHON_PATH: z.string().min(1).optional(),
-    OPENAI_API_KEY: z.string().min(1),
+    // Optional: the recipe importer's AI fallback, for pages its rules can't read.
+    OPENAI_API_KEY: z.string().min(1).optional(),
     PORT: z.coerce.number().int().positive().default(3000),
     VAPID_PRIVATE_KEY: z.string().min(1).optional(),
     VAPID_PUBLIC_KEY: z.string().min(1).optional(),
