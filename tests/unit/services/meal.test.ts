@@ -4,8 +4,9 @@ import { prismaMock } from '../../mocks/prisma';
 
 vi.mock('../../../prisma/index', () => ({ default: prismaMock }));
 
-const { completeMeal, deleteMeal, listMeals, upsertMeal } =
-    await import('../../../src/services/meal');
+const { completeMeal, deleteMeal, listMeals, upsertMeal } = await import(
+    '../../../src/services/meal'
+);
 const { addMealsToPlanDay, removeMealFromPlanDay } = await import('../../../src/services/plan');
 
 const T = new Date('2026-11-23T12:00:00Z');
