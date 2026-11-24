@@ -12,6 +12,7 @@ import eventRoutes from './routes/events';
 import healthRoutes from './routes/health';
 import householdRoutes from './routes/household';
 import ingredientLinkRoutes from './routes/ingredient-link';
+import mealRoutes from './routes/meal';
 import metaRoutes from './routes/meta';
 import pantryRoutes from './routes/pantry';
 import planRoutes from './routes/plan';
@@ -96,6 +97,7 @@ app.use(
     ingredientLinkRoutes,
     categoryRoutes,
     planRoutes,
+    mealRoutes,
 );
 
 export default app;

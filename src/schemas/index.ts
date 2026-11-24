@@ -86,6 +86,27 @@ export const AddPlanDaySchema = z.object({
 
 export const AddRecipesToPlanDaySchema = z.array(z.number().int().positive());
 
+export const AddMealsToPlanDaySchema = z.array(z.number().int().positive());
+
+// A planned meal that isn't a recipe (sous-web#67): a name and pantry items.
+export const UpsertMealSchema = z.object({
+    id: z.number().int().positive().optional(),
+    items: z
+        .array(
+            z.object({
+                optional: z.boolean().optional(),
+                pantryItemId: z.number().int().positive(),
+            }),
+        )
+        .max(100),
+    name: z.string().trim().min(1).max(200),
+});
+
+export const CompleteMealSchema = z.object({
+    finishedPantryItems: z.array(z.number().int().positive()).optional(),
+    lowPantryItems: z.array(z.number().int().positive()).optional(),
+});
+
 export const UpdateUserSchema = z.object({
     themePreference: z.enum(['system', 'light', 'dark']).optional(),
 });

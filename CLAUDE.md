@@ -38,6 +38,11 @@ line into amount, unit and item.
   all find nothing does `scrapeRecipe()` ask the AI. Test parsers with sample HTML
   in `tests/unit/services/import.test.ts`; the orchestration (AI gating, link
   following) is tested with puppeteer and `ai` mocked in `scraper.test.ts`.
+- Meals (`services/meal.ts`, sous-web#67): planned meals that aren't recipes, a name
+  plus `MealItem`s pointing at pantry items (with `optional`). They sit on plan days
+  through `PlanDay.meals`. Made or taken off the plan they're kept (the client offers
+  them again); `DELETE` soft-deletes. "Made" for recipes and meals shares
+  `applyPantryUsage()` (`services/pantry-usage.ts`).
 - Ingredients have an `optional` flag. Recipe saves take each ingredient as a plain
   line or `{ sentence, optional }`; a plain line is optional when it says
   "optional" (`toIngredientRow()` in `services/recipe.ts`).

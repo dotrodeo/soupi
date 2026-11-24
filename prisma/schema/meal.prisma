@@ -1,0 +1,36 @@
+// A planned meal that isn't a recipe (sous-web#67): a name and the pantry items it
+// needs, no amounts. It sits on plan days next to recipes. Made or taken off the
+// plan, it's kept, so the client can offer it again; deleting it (deletedAt)
+// dismisses it.
+model Meal {
+  id        Int       @id @default(autoincrement())
+  name      String
+  lastMade  DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  household   Household @relation(fields: [householdId], references: [id])
+  householdId Int
+
+  items    MealItem[]
+  planDays PlanDay[]  @relation("PlanDayMeals")
+
+  @@index([householdId])
+}
+
+// One pantry item a meal needs. Optional ones don't count as missing.
+model MealItem {
+  id        Int      @id @default(autoincrement())
+  optional  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  meal   Meal @relation(fields: [mealId], references: [id], onDelete: Cascade)
+  mealId Int
+
+  pantryItem   PantryItem @relation(fields: [pantryItemId], references: [id], onDelete: Cascade)
+  pantryItemId Int
+
+  @@unique([mealId, pantryItemId])
+  @@index([pantryItemId])
+}

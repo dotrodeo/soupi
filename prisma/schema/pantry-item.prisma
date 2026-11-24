@@ -17,4 +17,5 @@ model PantryItem {
   pantryId         Int
   pantry           Pantry           @relation(fields: [pantryId], references: [id])
   ingredientLinks  IngredientLink[]
+  mealItems        MealItem[]
 }

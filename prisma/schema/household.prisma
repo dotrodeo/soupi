@@ -11,4 +11,5 @@ model Household {
   recipeTags      RecipeTag[]
   plans           Plan[]
   ingredientLinks IngredientLink[]
+  meals           Meal[]
 }
