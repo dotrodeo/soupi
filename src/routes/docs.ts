@@ -11,9 +11,11 @@ extendZodWithOpenApi(z);
 
 import PackageJson from '../../package.json';
 import {
+    AddMealsToPlanDaySchema,
     AddPlanDaySchema,
     AddRecipesToPlanDaySchema,
     AddToShoppingListSchema,
+    CompleteMealSchema,
     CompleteRecipeSchema,
     DeletePushSubscriptionSchema,
     JoinHouseholdSchema,
@@ -22,6 +24,7 @@ import {
     UpdateUserSchema,
     UpsertCategorySchema,
     UpsertIngredientLinkSchema,
+    UpsertMealSchema,
     UpsertPantryItemSchema,
     UpsertRecipeSchema,
     UpsertTimerSchema,
@@ -37,6 +40,7 @@ const CategoryIdParam = z.coerce.number().int().positive().openapi({ example: 1 
 const RecipeIdParam = z.coerce.number().int().positive().openapi({ example: 1 });
 const ItemIdParam = z.coerce.number().int().positive().openapi({ example: 1 });
 const PlanDayIdParam = z.coerce.number().int().positive().openapi({ example: 1 });
+const MealIdParam = z.coerce.number().int().positive().openapi({ example: 1 });
 
 const householdParams = z.object({ householdId: HouseholdIdParam });
 const pantryParams = z.object({ householdId: HouseholdIdParam, pantryId: PantryIdParam });
@@ -52,6 +56,12 @@ const itemParams = z.object({
     pantryId: PantryIdParam,
 });
 const planDayParams = z.object({ householdId: HouseholdIdParam, planDayId: PlanDayIdParam });
+const mealParams = z.object({ householdId: HouseholdIdParam, id: MealIdParam });
+const planDayMealParams = z.object({
+    householdId: HouseholdIdParam,
+    mealId: MealIdParam,
+    planDayId: PlanDayIdParam,
+});
 const planDayRecipeParams = z.object({
     householdId: HouseholdIdParam,
     planDayId: PlanDayIdParam,
@@ -673,6 +683,89 @@ registry.registerPath({
     security: secured,
     summary: 'Remove a recipe from a plan day',
     tags: ['Meal Plan'],
+});
+
+registry.registerPath({
+    method: 'post',
+    path: '/household/{householdId}/plan/day/{planDayId}/meals',
+    request: {
+        body: { content: { 'application/json': { schema: AddMealsToPlanDaySchema } } },
+        params: planDayParams,
+    },
+    responses: {
+        200: { description: 'Meals added to plan day' },
+        403: { description: 'Access denied' },
+        404: { description: 'Plan day or meal not found' },
+    },
+    security: secured,
+    summary: 'Add meals to a plan day',
+    tags: ['Meal Plan'],
+});
+
+registry.registerPath({
+    method: 'delete',
+    path: '/household/{householdId}/plan/day/{planDayId}/meals/{mealId}',
+    request: { params: planDayMealParams },
+    responses: {
+        200: { description: 'Meal removed from plan day' },
+        403: { description: 'Access denied' },
+        404: { description: 'Plan day or meal not found' },
+    },
+    security: secured,
+    summary: 'Remove a meal from a plan day (the meal is kept)',
+    tags: ['Meal Plan'],
+});
+
+// ─── Meals (planned meals that aren't recipes) ────────────────────────────────
+
+registry.registerPath({
+    method: 'get',
+    path: '/household/{householdId}/meals',
+    request: { params: householdParams },
+    responses: { 200: { description: 'Meals, most recently changed or made first' } },
+    security: secured,
+    summary: "List the household's meals",
+    tags: ['Meals'],
+});
+
+registry.registerPath({
+    method: 'post',
+    path: '/household/{householdId}/meals',
+    request: {
+        body: { content: { 'application/json': { schema: UpsertMealSchema } } },
+        params: householdParams,
+    },
+    responses: {
+        200: { description: 'Meal created or updated, with its items' },
+        400: { description: 'Validation error' },
+        404: { description: 'Meal or pantry item not found' },
+    },
+    security: secured,
+    summary: 'Create or update a meal (its items replace the old ones)',
+    tags: ['Meals'],
+});
+
+registry.registerPath({
+    method: 'delete',
+    path: '/household/{householdId}/meals/{id}',
+    request: { params: mealParams },
+    responses: { 200: { description: 'Meal dismissed' }, 404: { description: 'Not found' } },
+    security: secured,
+    summary: 'Dismiss a meal: it leaves the plan and is no longer offered',
+    tags: ['Meals'],
+});
+
+registry.registerPath({
+    method: 'post',
+    path: '/household/{householdId}/meals/{id}/made',
+    request: {
+        body: { content: { 'application/json': { schema: CompleteMealSchema } } },
+        params: mealParams,
+    },
+    responses: { 200: { description: 'Meal marked made' }, 404: { description: 'Not found' } },
+    security: secured,
+    summary: 'Mark a meal made: update the pantry and take it off the plan',
+    tags: ['Meals'],
 });
 
 // ─── Events (SSE) ─────────────────────────────────────────────────────────────

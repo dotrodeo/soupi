@@ -35,7 +35,10 @@ connected clients.
   (on iPhone, in the app added to the Home Screen). Pending timers are stored in the
   database and re-armed when the server restarts. Off unless configured (see
   [Configuration](#configuration)).
-- **Meal plan.** Dated plan days holding recipes.
+- **Meal plan.** Dated plan days (and an "any time" day) holding recipes and meals.
+  A meal is a planned dish that isn't a recipe: a name and the pantry items it needs,
+  no amounts, with optional items. Marking it made updates the pantry like a recipe
+  does; it leaves the plan but is kept, so the app can offer it again.
 - **Live updates.** Every change is pushed to the household's open
   `/events/:householdId` Server-Sent Events streams.
 

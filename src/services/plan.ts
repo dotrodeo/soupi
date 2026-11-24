@@ -2,6 +2,25 @@ import { Plan } from '@prisma/client';
 
 import prisma from '../../prisma';
 import { NotFoundError } from '../middleware/errors';
+import { mealInclude, requireMeal } from './meal';
+
+export async function addMealsToPlanDay(
+    householdId: number,
+    { mealIds, planDayId }: { mealIds: number[]; planDayId: number },
+): Promise<void> {
+    await requirePlanDay(householdId, planDayId);
+    // Only this household's live meals.
+    const unique = [...new Set(mealIds)];
+    const owned = await prisma.meal.count({
+        where: { deletedAt: null, householdId, id: { in: unique } },
+    });
+    if (owned !== unique.length) throw new NotFoundError('Meal not found');
+
+    await prisma.planDay.update({
+        data: { meals: { connect: unique.map((id) => ({ id })) } },
+        where: { id: planDayId },
+    });
+}
 
 export async function addPlanDay(
     householdId: number,
@@ -23,7 +42,10 @@ export async function addPlanDay(
         },
         include: {
             planDays: {
-                include: { recipes: true },
+                include: {
+                    meals: { include: mealInclude, where: { deletedAt: null } },
+                    recipes: true,
+                },
                 where: { deletedAt: null },
             },
         },
@@ -88,6 +110,7 @@ export async function getPlan(householdId: number): Promise<Plan> {
         include: {
             planDays: {
                 include: {
+                    meals: { include: mealInclude, where: { deletedAt: null } },
                     recipes: {
                         include: {
                             ingredients: true,
@@ -101,6 +124,18 @@ export async function getPlan(householdId: number): Promise<Plan> {
             deletedAt: null,
             householdId,
         },
+    });
+}
+
+export async function removeMealFromPlanDay(
+    householdId: number,
+    { mealId, planDayId }: { mealId: number; planDayId: number },
+): Promise<void> {
+    await requirePlanDay(householdId, planDayId);
+    await requireMeal(householdId, mealId);
+    await prisma.planDay.update({
+        data: { meals: { disconnect: { id: mealId } } },
+        where: { id: planDayId },
     });
 }
 

@@ -118,8 +118,20 @@ async function seedHousehold(tag: string) {
         data: { householdId: household.id, name: `synonym ${tag}`, pantryItemId: item.id },
     });
     const plan = await prisma.plan.create({ data: { householdId: household.id } });
+    const meal = await prisma.meal.create({
+        data: {
+            householdId: household.id,
+            items: { create: [{ pantryItemId: item.id }] },
+            name: `meal ${tag}`,
+        },
+    });
     const planDay = await prisma.planDay.create({
-        data: { date: null, planId: plan.id, recipes: { connect: { id: recipe.id } } },
+        data: {
+            date: null,
+            meals: { connect: { id: meal.id } },
+            planId: plan.id,
+            recipes: { connect: { id: recipe.id } },
+        },
     });
     const keys = webpush.generateVAPIDKeys(); // any valid P-256 public key will do
     const subscription = await prisma.pushSubscription.create({
@@ -144,6 +156,7 @@ async function seedHousehold(tag: string) {
         household,
         item,
         link,
+        meal,
         pantry,
         plan,
         planDay,
@@ -161,12 +174,20 @@ async function snapshotB() {
     return JSON.stringify({
         household: await prisma.household.findUnique({ include: { members: true }, where: { id } }),
         links: await prisma.ingredientLink.findMany({ where: { householdId: id } }),
+        meals: await prisma.meal.findMany({
+            include: { items: true, planDays: { select: { id: true } } },
+            where: { householdId: id },
+        }),
         pantries: await prisma.pantry.findMany({
             include: { itemCategories: true, pantryItems: true },
             where: { householdId: id },
         }),
         plans: await prisma.plan.findMany({
-            include: { planDays: { include: { recipes: { select: { id: true } } } } },
+            include: {
+                planDays: {
+                    include: { meals: { select: { id: true } }, recipes: { select: { id: true } } },
+                },
+            },
             where: { householdId: id },
         }),
         push: await prisma.pushSubscription.findMany({
@@ -234,6 +255,12 @@ describe("routes with household B in the path are refused to A's member (403)", 
             ['GET', `/household/${h}/ingredient-links`],
             ['PUT', `/household/${h}/ingredient-links`, { name: 'x', pantryItemId: B.item.id }],
             ['DELETE', `/household/${h}/ingredient-links/${B.link.id}`],
+            ['GET', `/household/${h}/meals`],
+            ['POST', `/household/${h}/meals`, { items: [], name: 'x' }],
+            ['DELETE', `/household/${h}/meals/${B.meal.id}`],
+            ['POST', `/household/${h}/meals/${B.meal.id}/made`, {}],
+            ['POST', `/household/${h}/plan/day/${B.planDay.id}/meals`, [B.meal.id]],
+            ['DELETE', `/household/${h}/plan/day/${B.planDay.id}/meals/${B.meal.id}`],
         ];
     };
 
@@ -449,6 +476,67 @@ describe("B's ids under A's own household are refused, and B is unchanged", () =
                 path: `/household/${h}/plan/day/${B.planDay.id}/recipes/${B.recipe.id}`,
                 status: 404,
             },
+            // meals
+            {
+                body: { id: B.meal.id, items: [], name: 'hijacked' },
+                method: 'POST',
+                name: "edit B's meal",
+                path: `/household/${h}/meals`,
+                status: 404,
+            },
+            {
+                body: { items: [{ pantryItemId: B.item.id }], name: 'tacos' },
+                method: 'POST',
+                name: "use B's pantry item in own meal",
+                path: `/household/${h}/meals`,
+                status: 404,
+            },
+            {
+                method: 'DELETE',
+                name: "dismiss B's meal",
+                path: `/household/${h}/meals/${B.meal.id}`,
+                status: 404,
+            },
+            {
+                body: {},
+                method: 'POST',
+                name: "mark B's meal made",
+                path: `/household/${h}/meals/${B.meal.id}/made`,
+                status: 404,
+            },
+            {
+                body: { finishedPantryItems: [B.item.id], lowPantryItems: [B.item.id] },
+                method: 'POST',
+                name: "use up B's pantry item via own meal",
+                path: `/household/${h}/meals/${A.meal.id}/made`,
+                status: 204,
+            },
+            {
+                body: [A.meal.id],
+                method: 'POST',
+                name: "add own meal to B's plan day",
+                path: `/household/${h}/plan/day/${B.planDay.id}/meals`,
+                status: 404,
+            },
+            {
+                body: [B.meal.id],
+                method: 'POST',
+                name: "add B's meal to own plan day",
+                path: `/household/${h}/plan/day/${A.planDay.id}/meals`,
+                status: 404,
+            },
+            {
+                method: 'DELETE',
+                name: "remove a meal from B's plan day",
+                path: `/household/${h}/plan/day/${B.planDay.id}/meals/${B.meal.id}`,
+                status: 404,
+            },
+            {
+                method: 'DELETE',
+                name: "remove B's meal from own plan day",
+                path: `/household/${h}/plan/day/${A.planDay.id}/meals/${B.meal.id}`,
+                status: 404,
+            },
             // ingredient links
             {
                 body: { name: 'scallions', pantryItemId: B.item.id },
@@ -542,6 +630,7 @@ describe("lists never include B's data", () => {
             `/household/${h}/pantry/${p}/shopping-list`,
             `/household/${h}/pantry/${B.pantry.id}/shopping-list`,
             `/household/${h}/plan`,
+            `/household/${h}/meals`,
             `/household/${h}/ingredient-links`,
             `/timers?subscriptionId=${B.subscription.id}`,
             `/user`,
@@ -557,6 +646,7 @@ describe("lists never include B's data", () => {
         // and A's own data is there, so the check above means something
         expect(JSON.stringify(reads)).toContain('recipe a');
         expect(JSON.stringify(reads)).toContain('item a');
+        expect(JSON.stringify(reads)).toContain('meal a');
     });
 });
 
@@ -575,6 +665,17 @@ describe('controls: the same requests on A’s own ids work', () => {
             await call('POST', `/household/${h}/pantry/${p}/shopping-list`, {
                 itemIds: [A.item.id],
             }),
+            await call('POST', `/household/${h}/meals`, {
+                id: A.meal.id,
+                items: [{ optional: true, pantryItemId: A.item.id }],
+                name: 'tacos',
+            }),
+            await call('DELETE', `/household/${h}/plan/day/${A.planDay.id}/meals/${A.meal.id}`),
+            await call('POST', `/household/${h}/plan/day/${A.planDay.id}/meals`, [A.meal.id]),
+            await call('POST', `/household/${h}/meals/${A.meal.id}/made`, {
+                finishedPantryItems: [A.item.id],
+            }),
+            await call('DELETE', `/household/${h}/meals/${A.meal.id}`),
             await call('DELETE', `/household/${h}/plan/day/${A.planDay.id}/recipes/${A.recipe.id}`),
             await call('POST', `/household/${h}/plan/day/${A.planDay.id}/recipes`, [A.recipe.id]),
             await call('DELETE', `/household/${h}/plan/day/${A.planDay.id}`),
@@ -586,7 +687,9 @@ describe('controls: the same requests on A’s own ids work', () => {
             }),
             await call('DELETE', `/household/${h}/ingredient-links/${A.link.id}`),
         ].map((r) => r.status);
-        expect(results).toEqual([200, 200, 200, 200, 200, 204, 204, 204, 204, 204, 200, 204]);
+        expect(results).toEqual([
+            200, 200, 200, 200, 200, 200, 204, 204, 204, 204, 204, 204, 204, 204, 204, 200, 204,
+        ]);
         expect(
             (
                 await call('POST', `/household/${h}/pantry/${p}/shopping-list`, {

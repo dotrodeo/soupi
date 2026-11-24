@@ -9,4 +9,5 @@ model PlanDay {
   plan   Plan @relation("PlanDays", fields: [planId], references: [id])
 
   recipes Recipe[] @relation("PlanDayRecipes")
+  meals   Meal[]   @relation("PlanDayMeals")
 }

@@ -3,7 +3,7 @@ import { Router } from 'express';
 import { handle, parseBody } from '../middleware/handle';
 import requireAuth from '../middleware/require-auth';
 import { withHousehold } from '../middleware/with-household';
-import { AddPlanDaySchema, AddRecipesToPlanDaySchema } from '../schemas';
+import { AddMealsToPlanDaySchema, AddPlanDaySchema, AddRecipesToPlanDaySchema } from '../schemas';
 import * as planService from '../services/plan';
 
 const router = Router();
@@ -56,6 +56,32 @@ router.delete(
         planService.removeRecipeFromPlanDay(req.household.id, {
             planDayId: Number(req.params.planDayId),
             recipeId: Number(req.params.recipeId),
+        }),
+    ),
+);
+
+router.post(
+    `${prefix}/day/:planDayId/meals`,
+    requireAuth(),
+    withHousehold(),
+    handle((req, res) => {
+        const body = parseBody(res, AddMealsToPlanDaySchema, req.body);
+        if (!body) return;
+        return planService.addMealsToPlanDay(req.household.id, {
+            mealIds: body,
+            planDayId: Number(req.params.planDayId),
+        });
+    }),
+);
+
+router.delete(
+    `${prefix}/day/:planDayId/meals/:mealId`,
+    requireAuth(),
+    withHousehold(),
+    handle((req) =>
+        planService.removeMealFromPlanDay(req.household.id, {
+            mealId: Number(req.params.mealId),
+            planDayId: Number(req.params.planDayId),
         }),
     ),
 );

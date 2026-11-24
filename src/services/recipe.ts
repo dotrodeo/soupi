@@ -4,6 +4,7 @@ import prisma from '../../prisma';
 import { SSEMessageType } from '../../utils/constants';
 import { broadcast } from '../../utils/sse';
 import { parseIngredients } from './ingredient';
+import { applyPantryUsage } from './pantry-usage';
 import { scrapeRecipe } from './scraper';
 
 /** An ingredient line as sent by a client: plain text, or with its optional flag. */
@@ -56,33 +57,7 @@ export async function completeRecipe(
             where: { id: completion.recipeId },
         });
 
-        // Pantry items are only ever this household's: ids from another household
-        // are ignored.
-        const finished = completion.finishedPantryItems ?? [];
-        const items = await tx.pantryItem.findMany({
-            select: { id: true, isFavorite: true },
-            where: { id: { in: finished }, pantry: { householdId } },
-        });
-
-        for (const item of items) {
-            await tx.pantryItem.update({
-                data: {
-                    isInShoppingList: item.isFavorite ? true : false,
-                    isInStock: false,
-                    isLow: false,
-                },
-                where: { id: item.id },
-            });
-        }
-
-        // Running low: still in stock, marked low. Used up wins if an item is in both.
-        const low = (completion.lowPantryItems ?? []).filter((id) => !finished.includes(id));
-        if (low.length > 0) {
-            await tx.pantryItem.updateMany({
-                data: { isInStock: true, isLow: true },
-                where: { id: { in: low }, pantry: { householdId } },
-            });
-        }
+        await applyPantryUsage(tx, householdId, completion);
 
         const planned = await tx.planDay.findMany({
             select: { id: true },
